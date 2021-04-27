@@ -1,0 +1,193 @@
+<html>
+<head>
+  <title>Chromecast Manager Help</title>
+  <link rel="stylesheet" type="text/css" href="site.css">
+  <script src="test.js"></script>
+
+</head>
+
+<body onload="resethelpview();">
+
+<h1>Chromecast Manager Help</h1>
+
+<div class="enabletitle" onclick="toggleview('overview', null);">Overview</div>
+<div class="helpsection" id="overview">
+
+<p>This server provides a http interface for easy access to control 
+and manage chromecast devices through simple get and post calls.</p>
+<p>In addition to supporting http GET and POST queries to access
+chromecast devices on the network, it also provides a 
+<a href="/test" target="playground">test</a> 
+playground where chromecast messages can be verified</p>
+
+</div>
+
+<div class="enabletitle" onclick="toggleview('launching', null);">Launching the Server</div>
+<div class="helpsection" id="launching">
+
+<p>Usage: chromecastmanager [ portnum ] [ loglevel ]</p>
+<p><b>portnum</b>: Number of port to bind to for the http server</p>
+<p><b>loglevel</b>: Optional log level: debug, info, notice, error, warn, crit</p>
+
+<p><i>chromecastmanager</i> - This is the default program.  All log information
+is provided to the syslog.  Log levels can be changed on the command line if 
+required</p>
+
+<p><i>chromecastmanager-dbg</i> - This is the debug version of the program.
+'syslog' data is passed to stdout.</p>
+
+</div>
+
+<div class="enabletitle" onclick="toggleview('envvars', null);">Environment Variables</div>
+<div class="helpsection" id="envvars">
+
+<p>Both the default and debug programs make use of the following environment 
+variables:</p>
+
+<p><b>SSLKEYLOGFILE=/path/to/key.log</b> - If set, the program will write all encryption keys 
+used for the links to the chromecast devices to the specified file.  This file can 
+then be used by wireshark to perform network sniffing and decryption</p>
+
+<p><b>NETDUMPENABLE=1</b> - If set, will dump the raw packets that are to be sent / received
+on the network to stderr.</p>
+
+</div>
+
+<div class="enabletitle" onclick="toggleview('queryoptions', null);">Get / Post Query Options</div>
+<div class="helpsection" id="queryoptions">
+
+<p>Some of these transactions require the device name to be specified as a query option</p>
+<ul><li><b>device</b> - friendly name of the device</li></ul>
+<p><i>Note that the friendly names can be determied through a 
+<a href="/devicelist" target="dl">/devicelist</a> query</i></p>
+
+</div>
+
+<div class="enabletitle" onclick="toggleview('responsecodes', null);">Response Codes</div>
+<div class="helpsection" id="responsecodes">
+
+<p>http requests provide one of the following response codes:</p>
+<ul><li><b>200 OK</b> - A JSON response is provided for the request</li>
+<li><b>411 Length Required</b> - A message was received without a Length in the header</li>
+<li><b>414 Invalid URI</b> - The uri in the request was badly formatted, too long or missing</li>
+<li><b>431 Header Overflow</b> - The header request was too large</li>
+<li><b>404 Not Found</b> - The requested uri path could not be found</li>
+<li><b>500 Internal Error</b> - There was an internal memory allocation problem with the server</li>
+</ul>
+
+<p>Response of type 200 will contain a JSON message including the following:</p>
+
+<pre>
+{
+  "status": "response status",
+  "info": "response optional error message description",
+  "errocode": "response optional additional error code information"
+}
+</pre>
+
+<p>The response status will be one of the following:</p>
+
+<ul><li><b>OK</b> - A valid response was received from the chromecast device</li>
+<li><b>NODEVICE</b> - The chromecast device could not be found</li>
+<li><b>NETERR</b> - A network error occurred whilst sending the request</li>
+<li><b>TIMEOUT</b> - No response from the chromecast device was returned</li>
+<li><b>BADREQ</b> - A JSON request was expected in the request but was not found or was in error</li>
+<li><b>LOADFAILED</b> - The requested media file failed to load</li></ul>
+
+</div>
+
+<div class="enabletitle" onclick="toggleview('gettransactions', null);">Get Transactions</div>
+<div class="helpsection" id="gettransactions">
+
+<p>These transactions provide quick access for a subset of chromecast function.</p>
+
+<p class="subtitle"><b>/help</b></p>
+<p>Arguments: none</p>
+<p>Action: returns this help page</p>
+
+<p class="subtitle"><b><a href="/test" target="test">/test</a></b><p>
+<p>Arguments: none</p>
+<p>Action: accesses the Test Playground</p>
+
+<p class="subtitle"><b><a href="/devicelist" target="dl">/devicelist</a></b></p>
+<p>Arguments: none</p>
+<p>Action: returns a JSON structure containing all of the chromecast 
+devices which have been detected on the network using MDNS</p>
+<p>Returns: 200 OK if successful</p>
+
+<p class="subtitle"><b><a href="/sampledevicelist" target="sdl">/sampledevicelist</a></b></p>
+<p>Arguments: none</p>
+<p>Action: returns a static sample JSON structure for debugging and 
+development purposes.  This contains a simulated snapshot of devices
+on the network.  Note that there is no handler to simulate communication
+with these devices.</p>
+<p>Returns: 200 OK if successful</p>
+
+<p class="subtitle"><b>/command</b></p>
+<p>Arguments: <b>device</b>, <b>uri</b>, <b>desc</b> (optional), <b>sleep</b>
+(optional), <b>volume</b> (optional)</p>
+<p>Action: Submits a 'macro' command to the requested device.</p>
+<p>If the <b>volume</b> parameter is supplied, the volume is set to the
+requested value (0.0 represents mute).  The maximum value permitted is
+1.0</p>
+<p>If the <b>uri</b> parameter is supplied, the default media player
+application is started and the requested stream loaded.  If the <b>sleep</b>
+parameter is also supplied, the device is set to play for the requested
+number of minutes.  Finally, if the <b>desc</b> parameter is also supplied,
+the media stream description / title is assigned.</p>
+<p>Returns: 200 OK if successful</p>
+
+<p>Example: GET <b>/command?device=Kitchen%2FSpeaker&volume=0.1&uri=http%3A%2F%2Flive.stream.com%2F&sleep=5&title=Radio%20Live</b></p>
+
+</div>
+
+<div class="enabletitle" onclick="toggleview('posttransactions', null);">Post Transactions</div>
+<div class="helpsection" id="posttransactions">
+
+<p class="subtitle"><b>/jsonquery</b></p>
+
+<p>All post requests take a json formatted request, and provide a 
+response in the same format</p>
+
+<p>Arguments: <b>device</b></p>
+<p>JSON request / response format:</p>
+<pre>
+{
+  "sender": "e.g. sender-0"
+  "receiver": "e.g. receiver-0"
+  "namespace": "e.g. urn:x-cast:com.google.cast.receiver"
+  "message": { 
+     jsonmessage
+  }
+  "status": "response status",
+  "info": "response optional error message description",
+  "errocode": "response optional additional error code information"
+}
+</pre>
+
+<p>sender, receiver, namespace and message are mandatory for requests.</p>
+<p>Note that if sender-0 and receiver-0 are used, the chromecastmanager will 
+automatically send the CONNECT message, and keeps the connection alive (PING/PONG), 
+re-establishing it if it drops (e.g. responds with a CLOSE because you have sent it 
+an invalid request</p>
+
+<p>responses will include the status, and if OK, will include the sender, 
+receiver, namespace and message (this time, the response)</p>
+
+</div>
+
+<div class="enabletitle" onclick="toggleview('usefullinks', null);">Useful Links</div>
+<div class="helpsection" id="usefullinks">
+
+<p>For the structure of the json message, see the following resources:</p>
+<ul><li><a href="https://developers.google.com/cast/docs/reference/messages" target="cchlink1">
+Google Cast Media Playback Messages - urn:x-cast:com.google.cast.media</a></li>
+<li><a href="https://github.com/huaiyuangu/chromecast-receiver-emulator/blob/master/ChromecastEmulator.py" target="cchlink2">Example Chromecast Emulator</a></li>
+<li><a href="/test" target="playground">Test Playground</a></li>
+</ul>
+
+</div>
+
+</body>
+</html>
+

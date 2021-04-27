@@ -1,0 +1,213 @@
+<html>
+  <head>
+
+  <title>Chromecast Server Test Page</title>
+  <link rel="stylesheet" type="text/css" href="site.css" />
+  <script src="test.js"></script>
+
+</head>
+
+<body onload="enablefields();resetresponseview();refreshdevicelist('device');"><div class="top">
+
+<!-- CONTROL -->
+
+<div class="control" id="control">
+  <h1>Control</h1>
+
+  <div class="controlgroup noborder">
+
+    <div class="controlitem">
+
+      <div class="label">Command:</div>
+
+      <div class="item">
+
+        <select id="command" name="command" onchange="enablefields();">
+          <option value="devicelist">GET /devicelist</option>
+          <option value="jsonquery">POST /jsonquery</option>
+          <option value="command">GET /command</option>
+        </select>
+
+        <div class="button-with-hint">
+            <button class="button" onclick="processform(1);">Submit</button>
+            <div class="hint">Submit GET/POST query</div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- device selection -->
+
+  <div class="controlgroup noborder" id="deviced">
+
+    <div class="controlitem">
+
+      <div class="label">Device:</div>
+
+      <div class="item">
+
+        <select id="device" name="device" onmousedown="refreshdevicelist('device');">
+        </select>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- /command -->
+
+  <div class="controlgroup border" id="commandd">
+
+    <div class="controlitem">
+      <div class="label">URI:</div>
+      <div class="item">
+        <input type="text" id="uri" name="uri" value="" placeholder="http://media.stream.url/">
+      </div>
+    </div>
+
+    <div class="controlitem">
+      <div class="label">Title</div>
+      <div class="item">
+        <input type="text" id="title" name="title" value="" placeholder="Description of stream">
+      </div>
+    </div>
+
+    <div class="controlitem">
+      <div class="label">Sleep:</div>
+      <div class="item">
+        <input type="text" id="sleep" name="sleep" value="" placeholder="0">
+      </div>
+    </div>
+
+    <div class="controlitem">
+      <div class="label">Volume:</div>
+      <div class="item">
+        <input type="text" id="volume" name="volume" value="" placeholder="0.15">
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- /jsonquery -->
+
+  <div class="controlgroup border" id="jsonqueryd">
+
+    <div class="controlitem">
+      <div class="label">Namespace:</div>
+      <div class="item">
+
+       <div class="select-editable" id="select-namespace">
+        <select onchange="this.nextElementSibling.value=this.value">
+         <option value=""></option>
+         <option value="urn:x-cast:com.google.cast.media">urn:x-cast:com.google.cast.media</option>
+         <option value="urn:x-cast:com.google.cast.receiver">urn:x-cast:com.google.cast.receiver</option>
+         <option value="urn:x-cast:com.google.cast.tp.connection">urn:x-cast:com.google.cast.tp.connection</option>
+         <option value="urn:x-cast:com.google.cast.tp.deviceauth">urn:x-cast:com.google.cast.tp.deviceauth</option>
+         <option value="urn:x-cast:com.google.cast.tp.heartbeat">urn:x-cast:com.google.cast.tp.heartbeat</option>
+        </select>
+        <input type="text" name="namespace" id="namespace" value="urn:x-cast:com.google.cast.receiver">
+       </div>
+
+      </div>
+    </div>
+
+    <div class="controlitem">
+      <div class="label">Sender:</div>
+      <div class="item">
+        <input type="text" id="sender" name="sender" value="sender-0">
+      </div>
+    </div>
+
+    <div class="controlitem">
+      <div class="label">Receiver:</div>
+      <div class="item">
+        <input type="text" id="receiver" name="receiver" value="receiver-0">
+      </div>
+    </div>
+
+    <div class="controlitem">
+      <div class="label aligntop">
+
+        Message:
+
+        <div class="button-with-hint">
+          <button class="button colour0" onclick="populatejson(1);">CONNECT</button>
+          <div class="hint">Send Connect<br/><i>automatically done for sender-0 / receiver-0</i></div>
+        </div>
+
+        <div class="button-with-hint">
+          <button class="button colour1" onclick="populatejson(2);">STATUS</button>
+          <div class="hint">
+            <a href="https://developers.google.com/cast/docs/reference/messages#GetStatus" target="googlehelp">
+              Request status
+            </a>
+          </div>
+        </div>
+
+        <div class="button-with-hint">
+            <button class="button colour1" onclick="populatejson(3);">VOLUME</button>
+            <div class="hint">
+              <a href="https://developers.google.com/cast/docs/reference/messages#SetVolume" target="googlehelp">
+                Adjust speaker volume
+              </a>
+            </div>
+        </div>
+
+        <div class="button-with-hint">
+          <button class="button colour1" onclick="populatejson(4);">LAUNCH</button>
+          <div class="hint">Launch application</div>
+        </div>
+
+        <div class="button-with-hint">
+            <button class="button colour2" onclick="populatejson(5);">LOAD</button>
+            <div class="hint">
+              <a href="https://developers.google.com/cast/docs/reference/messages#Load" target="googlehelp">
+               Load and play media
+              </a>
+            </div>
+        </div>
+
+        <div class="button-with-hint">
+            <button class="button colour2" onclick="populatejson(6);">PAUSE</button>
+            <div class="hint">
+              <a href="https://developers.google.com/cast/docs/reference/messages#Pause" target="googlehelp">
+                Pause playback
+              </a>
+            </div>
+        </div>
+
+      </div>
+      <div class="item"><textarea id="message" placeholder="{ ... }"></textarea></div>
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- MESSAGE RESPONSE -->
+
+<div class="response" id="responsed">
+
+  <h1>Message</h1>
+  <div>
+    <div class="enabletitle" id="rawsentheader" onclick="toggleview('rawsent', null);">Raw Message Sent</div>
+    <div id="rawsent"><p><i>No message has been sent</i></p></div>
+    <div class="enabletitle" id="rawrespheader" onclick="toggleview('response', 'rawrecv');">Raw Response Received</div>
+    <div id="rawrecv"><p><pre>{}</pre></p></div>
+    <div class="enabletitle" id="respheader" onclick="toggleview('response', 'rawrecv');">Response</div>
+    <div id="response"><p><pre>response data ... </pre></p></div>
+
+  </div>
+
+</div>
+
+</div></body></html>
+
