@@ -157,7 +157,8 @@ int ccgetflag(CHROMECAST *cch) ;
 
 #define CC_FLAG_PROCESSING 1
 #define CC_FLAG_LOADSENT 2
-#define CC_FLAG_ALL 3
+#define CC_FLAG_JSONQUERY 4
+#define CC_FLAG_ALL 7
 
 
 //////////////////////////////////////////////////////////////////////////

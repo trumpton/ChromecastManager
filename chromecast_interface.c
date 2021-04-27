@@ -421,11 +421,14 @@ int _cc_processinputmessage(CHROMECAST *cch)
 
       dorenamenode(cch->recvobject, "/f6", "message") ;
 
-      logmsg( LOG_DEBUG, "RECV:%s %s from %s:%d",
-              dogetdata(cch->recvobject, do_string, NULL, "/namespace"),
-              dogetdata(cch->recvobject, do_string, NULL, "/message"),
-              ccipaddress(cch), ccpeerport(cch) ) ;
+      char *sender = dogetdata(cch->recvobject, do_string, NULL, "/sender") ;
+      if ( getenv("PINGLOGENABLE") || (sender && strcmp(sender, "Tr@n$p0rt-0")!=0) ) {
 
+        logmsg( LOG_DEBUG, "RECV:%s %s from %s:%d",
+                dogetdata(cch->recvobject, do_string, NULL, "/namespace"),
+                dogetdata(cch->recvobject, do_string, NULL, "/message"),
+                ccipaddress(cch), ccpeerport(cch) ) ;
+      }
 
       if (!doexpandfromjson(cch->recvobject, "/message")) {
 
@@ -729,8 +732,10 @@ int ccsendmessage(CHROMECAST *cch, char *sender, char *receiver, char *namespace
   dosettype(cch->sendobject, do_uint32, "/f5") ; dorenamenode(cch->sendobject, "/f5", "datatype") ;
   doexpandfromjson(cch->sendobject, "/f6") ; dorenamenode(cch->sendobject, "/f6", "message") ;
 
-  logmsg( LOG_DEBUG, "SEND%s:%s %s to %s:%d", (r1==4 && r2==len)?"":"FAILED", 
-          namespace, messagebuf, ccipaddress(cch), ccpeerport(cch)) ;
+      if ( getenv("PINGLOGENABLE") || (sender && strcmp(sender, "Tr@n$p0rt-0")!=0) ) {
+    logmsg( LOG_DEBUG, "SEND%s:%s %s to %s:%d", (r1==4 && r2==len)?"":"FAILED", 
+            namespace, messagebuf, ccipaddress(cch), ccpeerport(cch)) ;
+  }
 
   free(messagebuf) ;
 
