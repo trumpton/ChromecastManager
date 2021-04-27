@@ -32,6 +32,9 @@ clean:
 	(cd libnet ; make clean)
 	/bin/rm -f ${EXECUTABLE} ${EXECUTABLE}-dbg
 
+pull:
+	git pull --recurse-submodules
+
 libs:
 	(cd libdataobject ; make)
 	(cd libtools ; make) 
@@ -51,13 +54,12 @@ ${EXECUTABLE}-dbg: ${SOURCE} ${DBGLIB} ${DODBGLIB} ${HTMLFSLIB} ${NETDBGLIB}
 	gcc -g ${CCDEBUG} -D DEBUG -o $@ ${SOURCE} ${DBGLIB} ${DODBGLIB} ${HTMLFSLIB} ${NETDBGLIB} -lssl -lcrypto
 
 libtools/Makefile:
-	git pull --recurse-submodules
+	git submodule update --init --recursive
 
 libnet/Makefile:
-	git pull --recurse-submodules
+	git submodule update --init --recursive
 
 libdataobject/Makefile:
-	git pull --recurse-submodules
-
+	git submodule update --init --recursive
 %.c : %.h
 
