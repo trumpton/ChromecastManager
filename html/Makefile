@@ -2,14 +2,14 @@
 #
 #
 
-SOURCES := chromecast_BINALERT.mp3 chromecast_BINICON.png \
+SOURCES := chromecast_BINALERT.mp3 chromecast_BINICON.png chromecast_BINPP.png \
 		chromecast_HTMLHELP.html chromecast_HTMLTEST.html chromecast_HTMLSCRIPT.js \
 		chromecast_HTMLCSS.css chromecast_HTML404.html chromecast_HTMLSAMPLEDEVICELIST.json
 
 TXT2H := txt2h
 BIN2H := bin2h
 
-all: ${BIN2H} chromecast_BINALERT.mp3h chromecast_BINICON.pngh ${TXT2H} lhtmlfs.a
+all: ${BIN2H} chromecast_BINALERT.mp3h chromecast_BINICON.pngh chromecast_BINPP.pngh ${TXT2H} lhtmlfs.a
 
 #
 #

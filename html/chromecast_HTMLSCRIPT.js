@@ -343,20 +343,6 @@ function resetresponseview()
   rawrecv.style.display = "none" ;
 }
 
-function resethelpview()
-{
-  document.getElementById('overview').style.display="block" ;
-  document.getElementById('launching').style.display="none" ;
-  document.getElementById('responsecodes').style.display="none" ;
-  document.getElementById('envvars').style.display="none" ;
-  document.getElementById('queryoptions').style.display="none" ;
-  document.getElementById('gettransactions').style.display="none" ;
-  document.getElementById('posttransactions').style.display="none" ;
-  document.getElementById('usefullinks').style.display="none" ;
-}
-
-
-
 
 function refreshdevicelist(tag)
 {

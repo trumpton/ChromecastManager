@@ -6,12 +6,20 @@
 
 </head>
 
-<body onload="resethelpview();">
+<body>
 
-<h1>Chromecast Manager Help</h1>
+<div>
+  <a href="http://www.vizier.uk/guidedogs" target="sponsor">
+    <img class="icon" src="/pp.png" align="right" alt="Paw Print" 
+         title="Say Thankyou by making a donation to Guide Dogs for the Blind" />
+  </a>
+  <img class="icon" src="/favicon.ico" align="left" alt="Chromecast Manager" 
+       title="Chromecast Manager, Copyright Steve Clarke (c) 2021" />
+  <h1 class="iconheading">Chromecast Manager Help</h1>
+</div>
 
 <div class="enabletitle" onclick="toggleview('overview', null);">Overview</div>
-<div class="helpsection" id="overview">
+<div class="helpsection" style="display:block" id="overview">
 
 <p>This server provides a http interface for easy access to control 
 and manage chromecast devices through simple get and post calls.</p>
@@ -20,10 +28,14 @@ chromecast devices on the network, it also provides a
 <a href="/test" target="playground">test</a> 
 playground where chromecast messages can be verified</p>
 
+<p>If you find this program useful, please consider making a donation to 
+<a href="http://www.vizier.uk/guidedogs" target="sponsor">
+Guide Dogs for the Blind</a> - your support is very much appreciated</p>
+
 </div>
 
 <div class="enabletitle" onclick="toggleview('launching', null);">Launching the Server</div>
-<div class="helpsection" id="launching">
+<div class="helpsection" style="display:none" id="launching">
 
 <p>Usage: chromecastmanager [ portnum ] [ loglevel ]</p>
 <p><b>portnum</b>: Number of port to bind to for the http server</p>
@@ -39,7 +51,7 @@ required</p>
 </div>
 
 <div class="enabletitle" onclick="toggleview('envvars', null);">Environment Variables</div>
-<div class="helpsection" id="envvars">
+<div class="helpsection" style="display:none" id="envvars">
 
 <p>Both the default and debug programs make use of the following environment 
 variables:</p>
@@ -53,18 +65,11 @@ on the network to stderr.</p>
 
 </div>
 
-<div class="enabletitle" onclick="toggleview('queryoptions', null);">Get / Post Query Options</div>
-<div class="helpsection" id="queryoptions">
 
-<p>Some of these transactions require the device name to be specified as a query option</p>
-<ul><li><b>device</b> - friendly name of the device</li></ul>
-<p><i>Note that the friendly names can be determied through a 
-<a href="/devicelist" target="dl">/devicelist</a> query</i></p>
 
-</div>
 
 <div class="enabletitle" onclick="toggleview('responsecodes', null);">Response Codes</div>
-<div class="helpsection" id="responsecodes">
+<div class="helpsection" style="display:none" id="responsecodes">
 
 <p>http requests provide one of the following response codes:</p>
 <ul><li><b>200 OK</b> - A JSON response is provided for the request</li>
@@ -96,8 +101,11 @@ on the network to stderr.</p>
 
 </div>
 
+
+
+
 <div class="enabletitle" onclick="toggleview('gettransactions', null);">Get Transactions</div>
-<div class="helpsection" id="gettransactions">
+<div class="helpsection" style="display:none" id="gettransactions">
 
 <p>These transactions provide quick access for a subset of chromecast function.</p>
 
@@ -123,35 +131,66 @@ on the network.  Note that there is no handler to simulate communication
 with these devices.</p>
 <p>Returns: 200 OK if successful</p>
 
-<p class="subtitle"><b>/command</b></p>
-<p>Arguments: <b>device</b>, <b>uri</b>, <b>desc</b> (optional), <b>sleep</b>
+<p class="subtitle"><b>/command?device=friendlyName</b></p>
+<p>Arguments: <b>device</b>, <b>uri</b> (optional), <b>title</b> (optional), <b>sleep</b>
 (optional), <b>volume</b> (optional)</p>
 <p>Action: Submits a 'macro' command to the requested device.</p>
+
+<p>The <b>device</b> is the friendly name of the device - note that the friendly names 
+can be determied through a <a href="/devicelist" target="dl">/devicelist</a> query</p>
+
 <p>If the <b>volume</b> parameter is supplied, the volume is set to the
 requested value (0.0 represents mute).  The maximum value permitted is
 1.0</p>
 <p>If the <b>uri</b> parameter is supplied, the default media player
 application is started and the requested stream loaded.  If the <b>sleep</b>
 parameter is also supplied, the device is set to play for the requested
-number of minutes.  Finally, if the <b>desc</b> parameter is also supplied,
+number of minutes.  Finally, if the <b>title</b> parameter is also supplied,
 the media stream description / title is assigned.</p>
 <p>Returns: 200 OK if successful</p>
 
-<p>Example: GET <b>/command?device=Kitchen%2FSpeaker&volume=0.1&uri=http%3A%2F%2Flive.stream.com%2F&sleep=5&title=Radio%20Live</b></p>
+<div class="sent">
+<h2>GET Command Request</h2>
+<pre>
+GET /command?device=Kitchen%2FSpeaker&volume=0.1&uri=http%3A%2F%2Flive.stream.com%2F&sleep=5&title=Radio%20Live
+</pre></div>
+
+<div class="received">
+<h2>=Successful Response</h2>
+<pre>
+{
+    "status": "OK"
+}
+</pre></div>
+
+<div class="received">
+<h2>=Example Failure Response</h2>
+<pre>
+{
+    "status": "LOADFAILED",
+    "errorcode": 104,
+    "info": "media stream loading failed (check uri)"
+}
+</pre></div>
 
 </div>
 
+
+
 <div class="enabletitle" onclick="toggleview('posttransactions', null);">Post Transactions</div>
-<div class="helpsection" id="posttransactions">
+<div class="helpsection" style="display:none" id="posttransactions">
 
-<p class="subtitle"><b>/jsonquery</b></p>
+<p class="subtitle"><b>/jsonquery?device=friendlyName</b></p>
 
-<p>All post requests take a json formatted request, and provide a 
-response in the same format</p>
+<p>The <b>device</b> is the friendly name of the device - note that the friendly names 
+can be determied through a <a href="/devicelist" target="dl">/devicelist</a> query</p>
 
-<p>Arguments: <b>device</b></p>
-<p>JSON request / response format:</p>
+<p>All post requests take a json formatted request, and provide a response in the same format</p>
+
+<div class="sent">
+<h2>POST JSON Query</h2>
 <pre>
+POST /command?device=<i>device%20name</i>
 {
   "sender": "e.g. sender-0"
   "receiver": "e.g. receiver-0"
@@ -159,11 +198,24 @@ response in the same format</p>
   "message": { 
      jsonmessage
   }
+}
+</pre></div>
+
+<div class="received">
+<h2>Received Response</h2>
+<pre>
+{
+  "sender": "e.g. receiver-0"
+  "receiver": "e.g. sender-0 or *"
+  "namespace": "e.g. urn:x-cast:com.google.cast.receiver"
+  "message": { 
+     jsonmessage
+  },
   "status": "response status",
   "info": "response optional error message description",
   "errocode": "response optional additional error code information"
 }
-</pre>
+</pre></div>
 
 <p>sender, receiver, namespace and message are mandatory for requests.</p>
 <p>Note that if sender-0 and receiver-0 are used, the chromecastmanager will 
@@ -176,14 +228,369 @@ receiver, namespace and message (this time, the response)</p>
 
 </div>
 
-<div class="enabletitle" onclick="toggleview('usefullinks', null);">Useful Links</div>
-<div class="helpsection" id="usefullinks">
+
+
+<div class="enabletitle" onclick="toggleview('example1', null);">Example: Connect and Get Status</div>
+<div class="helpsection" style="display:none" id="example1">
+
+<div class="comment">
+<p>The first thing to do is to open a connection to the chromecast receiver.  Note that CONNECT does not return anything</p>
+</div>
+
+<div class="sent">
+<h2>SEND: Connection Request</h2>
+<pre>
+{
+    "namespace": "urn:x-cast:com.google.cast.connection",
+    "sender": "sender-0",
+    "receiver": "receiver-0",
+    "message": {
+        "type": "CONNECT"
+    }
+}
+</pre></div>
+
+<div class="comment">
+<p>Immediately after the connect, you can start to send messages to the receiver.</p>
+</div>
+
+
+<div class="sent">
+<h2>SEND: Get Status Request</h2>
+<pre>
+{
+    "namespace": "urn:x-cast:com.google.cast.receiver",
+    "sender": "sender-0",
+    "receiver": "receiver-0",
+    "message": {
+        "requestId": 1,
+        "type": "GET_STATUS"
+    }
+}
+</pre></div>
+
+<div class="comment">
+<p>Some time after the GET_STATUS request to the receiver, the receiver will return a RECEIVER_STATUS message.  Note that the requestId will match the requestId from the sent message.</p>
+</div>
+
+<div class="received">
+<h2>RECV: Status Response</h2>
+<pre>
+{
+    "version": 0,
+    "sender": "receiver-0",
+    "receiver": "sender-0",
+    "namespace": "urn:x-cast:com.google.cast.receiver",
+    "datatype": 0,
+    "message": {
+        "requestId": 1,
+        "status": {
+            "userEq": {
+                "high_shelf": {
+                    "frequency": 4500,
+                    "gain_db": 0,
+                    "quality": 0.707
+                },
+                "low_shelf": {
+                    "frequency": 150,
+                    "gain_db": 0,
+                    "quality": 0.707
+                },
+                "max_peaking_eqs": 0,
+                "peaking_eqs": []
+            },
+            "volume": {
+                "controlType": "master",
+                "level": 0.3,
+                "muted": false,
+                "stepInterval": 0.02
+            }
+        },
+        "type": "RECEIVER_STATUS"
+    },
+    "status": "OK"
+}
+</pre></div>
+
+</div>
+
+
+
+
+<div class="enabletitle" onclick="toggleview('example2', null);">Example: Connect and Play Media</div>
+<div class="helpsection" style="display:none" id="example2">
+
+<div class="comment">
+<p>We will assume that the connection is established as per the previous example.  The first thing we will do in this example is set the receiver volume - note that there are two different volume controls, one for the receiver itself, and the other for the application.  Normally, the applications are set to full volume, and it is the receiver volume control (which is the same as the volume control buttons on the device) is used.</p>
+<p>Note that for the response messages, the receiver may be "*" rather than "sender-0", depending on whether the message is a broadcast one or not.</p>
+<p>Note also that we use a requestId of 2 - the requestIds that the device has received need to be unique.  Note also that the device can also use a requestId of 0 when providing unsolicited responses.</p>
+<p>The request returns a device status update with the new volume level</p>
+</div>
+
+<div class="sent">
+<h2>SEND: Set Volume to 10%</h2>
+<pre>
+{
+{
+    "namespace": "urn:x-cast:com.google.cast.receiver",
+    "sender": "sender-0",
+    "receiver": "receiver-0",
+    "message": {
+        "requestId": 2,
+        "type": "SET_VOLUME",
+        "volume": {
+            "level": 0.1
+        }
+    }
+}
+}
+</pre></div>
+
+<div class="received">
+<h2>RECV: Status Response</h2>
+<pre>
+{
+    "version": 0,
+    "sender": "receiver-0",
+    "receiver": "*",
+    "namespace": "urn:x-cast:com.google.cast.receiver",
+    "datatype": 0,
+    "message": {
+        "requestId": 1,
+        "status": {
+            "userEq": {
+                "high_shelf": {
+                    "frequency": 4500,
+                    "gain_db": 0,
+                    "quality": 0.707
+                },
+                "low_shelf": {
+                    "frequency": 150,
+                    "gain_db": 0,
+                    "quality": 0.707
+                },
+                "max_peaking_eqs": 0,
+                "peaking_eqs": []
+            },
+            "volume": {
+                "controlType": "master",
+                "level": 0.1,
+                "muted": false,
+                "stepInterval": 0.02
+            }
+        },
+        "type": "RECEIVER_STATUS"
+    },
+    "status": "OK"
+}
+</pre></div>
+
+<div class="comment">
+<p>The next thing to do is to launch an application.  Applications have unique IDs, and the Default Media Player application has appId of 'CC1AD845'.</p>
+<p>The launch request prompt the issuing of a broadcast RECEIVER_STATUS, and this broadcast now includes details of the launched application.</p>
+<p>You can, of course also send a GET_STATUS command to poll for this update.</p>
+</div>
+
+<div class="sent">
+<h2>SEND: Launch Default Media Receiver</h2>
+<pre>
+{
+    "namespace": "urn:x-cast:com.google.cast.receiver",
+    "sender": "sender-0",
+    "receiver": "receiver-0",
+    "message": {
+        "type": "LAUNCH",
+        "requestId": 3,
+        "appId": "CC1AD845"
+    }
+}
+</pre></div>
+
+<div class="received">
+<h2>RECV: Status Update</h2>
+<pre>
+{
+    "version": 0,
+    "sender": "receiver-0",
+    "receiver": "*",
+    "namespace": "urn:x-cast:com.google.cast.receiver",
+    "datatype": 0,
+    "message": {
+        "requestId": 3,
+        "status": {
+            "applications": [
+                {
+                    "appId": "CC1AD845",
+                    "appType": "WEB",
+                    "displayName": "Default Media Receiver",
+                    "iconUrl": "",
+                    "isIdleScreen": false,
+                    "launchedFromCloud": false,
+                    "namespaces": [
+                        {
+                            "name": "urn:x-cast:com.google.cast.cac"
+                        },
+                        {
+                            "name": "urn:x-cast:com.google.cast.debugoverlay"
+                        },
+                        {
+                            "name": "urn:x-cast:com.google.cast.broadcast"
+                        },
+                        {
+                            "name": "urn:x-cast:com.google.cast.media"
+                        }
+                    ],
+                    "sessionId": "548e1a97-76ad-4fb9-8e1f-bbecb0485c39",
+                    "statusText": "Default Media Receiver",
+                    "transportId": <b>"548e1a97-76ad-4fb9-8e1f-bbecb0485c39"</b>,
+                    "universalAppId": "CC1AD845"
+                }
+            ],
+            "userEq": {
+                "high_shelf": {
+                    "frequency": 4500,
+                    "gain_db": 0,
+                    "quality": 0.707
+                },
+                "low_shelf": {
+                    "frequency": 150,
+                    "gain_db": 0,
+                    "quality": 0.707
+                },
+                "max_peaking_eqs": 0,
+                "peaking_eqs": []
+            },
+            "volume": {
+                "controlType": "master",
+                "level": 0.1,
+                "muted": false,
+                "stepInterval": 0.02
+            }
+        },
+        "type": "RECEIVER_STATUS"
+    },
+    "status": "OK"
+}
+</pre></div>
+
+<div class="comment">
+<p>Looking at the receiver status, you will now see that the application has a transportId - this is the channel
+which should be used for all communication with the application.  In order to tell the application to play a 
+specific media stream, it is necessary to open a new connection (note the different sender and receiver), then issue a LOAD command</p>
+<p>Note also that all of the transportIds for devices which are currently running applications are reported
+in the /devicelist report</p>
+</div>
+
+<div class="sent">
+<h2>SEND: Connect to the Default Media Receiver</h2>
+<pre>
+{
+    "namespace": "urn:x-cast:com.google.cast.connection",
+    "sender": <b>"sender-1"</b>,
+    "receiver": <b>"548e1a97-76ad-4fb9-8e1f-bbecb0485c39"</b>,
+    "message": {
+        "type": "CONNECT"
+    }
+}
+}</pre></div>
+
+<div class="sent">
+<h2>SEND: Issue the Load Command</h2>
+<pre>
+{
+{
+    "namespace": "urn:x-cast:com.google.cast.media",
+    "sender": "sender-1",
+    "receiver": "548e1a97-76ad-4fb9-8e1f-bbecb0485c39",
+    "message": {
+        "requestId": 4,
+        "type": "LOAD",
+        "autoplay": true,
+        "media": {
+            "contentId": "http://media.stream/url/",
+            "streamType": "LIVE",
+            "contentType": "audio/mpeg",
+            "metadata": {
+                "metadataType": 0,
+                "title": "Media Stream Title"
+            }
+        }
+    }
+}
+</pre></div>
+
+<div class="comment">
+<p>For Reference, the response to a get command also includes information regarding the connection.</p>
+<p>Following a LOAD command, the playerState should be either BUFFERING or PLAYING if the load was
+successful.  If the load failed, the playerState will be IDLE</p>
+<p>The chromecast manager will also issue one of the following response messages for a successful and
+unsuccessful load respectively:</p>
+</div>
+
+<div class="received">
+<h2>RECV: Valid Load Response</h2>
+<pre>
+{
+    "namespace": "urn:x-cast:com.google.cast.media",
+    "sender": "548e1a97-76ad-4fb9-8e1f-bbecb0485c39",
+    "receiver": "sender-1",
+    "datatype": 0,
+    "message": {
+        "type": "MEDIA_STATUS",
+        "status": [
+            {
+                "mediaSessionId": 1,
+                "playbackRate": 1,
+                "playerState": "BUFFERING",
+                "currentTime": 0,
+                "supportedMediaCommands": 274447,
+                "volume": {
+                    "level": 1,
+                    "muted": false
+                },
+                "currentItemId": 1,
+                "repeatMode": "REPEAT_OFF"
+            }
+        ],
+        "requestId": 0
+    },
+    "status": "OK"
+}
+</pre></div>
+
+<div class="received">
+<h2>RECV: Failed Load Response</h2>
+<pre>
+{
+    "namespace": "urn:x-cast:com.google.cast.media",
+    "sender": "548e1a97-76ad-4fb9-8e1f-bbecb0485c39",
+    "receiver": "sender-1",
+    "datatype": 0,
+    "message": {
+        "requestId": 4,
+        "type": "LOAD_FAILED",
+        "detailedErrorCode": 104,
+        "itemId": 1
+    },
+    "status": "OK"
+}
+</pre></div>
+
+</div>
+
+
+
+<div class="enabletitle" onclick="toggleview('usefullinks', null);">Links</div>
+<div class="helpsection" style="display:none" id="usefullinks">
 
 <p>For the structure of the json message, see the following resources:</p>
 <ul><li><a href="https://developers.google.com/cast/docs/reference/messages" target="cchlink1">
 Google Cast Media Playback Messages - urn:x-cast:com.google.cast.media</a></li>
 <li><a href="https://github.com/huaiyuangu/chromecast-receiver-emulator/blob/master/ChromecastEmulator.py" target="cchlink2">Example Chromecast Emulator</a></li>
 <li><a href="/test" target="playground">Test Playground</a></li>
+<li><a href="http://www.vizier.uk/guidedogs" target="sponsor">Say Thankyou by making a donation to Guide Dogs for the Blind</a></li>
+</a>
+
 </ul>
 
 </div>

@@ -16,6 +16,7 @@
 #include "chromecast_HTML404.htmlh"
 #include "chromecast_BINICON.pngh"
 #include "chromecast_BINALERT.mp3h"
+#include "chromecast_BINPP.pngh"
 
 int html_filesystem(char *path, char **data, char **mediatype, int *len)
 {
@@ -40,6 +41,13 @@ int html_filesystem(char *path, char **data, char **mediatype, int *len)
     *data = HTMLSAMPLEDEVICELIST_DATA ;
     *mediatype = HTMLSAMPLEDEVICELIST_MEDIATYPE ;
     *len = HTMLSAMPLEDEVICELIST_LEN ;
+    return 1 ;
+
+ } else if (strcasecmp(path, "/pp.png")==0) {
+
+    *data = BINPP_DATA ;
+    *mediatype = BINPP_MEDIATYPE ;
+    *len = BINPP_LEN ;
     return 1 ;
 
   } else if (strcasecmp(path, "/favicon.ico")==0) {

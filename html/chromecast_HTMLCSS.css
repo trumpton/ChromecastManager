@@ -11,6 +11,36 @@ div.top {
   align-items: stretch ;
 }
 
+img.icon {
+  width: 48px ;
+  height: 48px ;
+  padding-left: 20px ;
+  padding-right: 20px ;
+  padding-top: 4px ;
+  padding-bottom: 4px ;
+}
+
+h1.iconheading {
+  padding-top: 10px ;
+  padding-left: 75px ;
+}
+
+span.help {
+  float: right;
+  color:white;
+  font-size:120%;
+}
+
+span.help a {
+  color:white ;
+  text-decorations: none ;
+}
+
+span.help a#visited {
+  color:white ;
+  text-decorations: none ;
+}
+
 div.control {
   margin: 10px;
   width: 500px;
@@ -183,6 +213,68 @@ div.helpsection {
   border: none ;
   border-radius: 5px ;
 }
+
+div.sent {
+  margin-top: 5px ;
+  margin-bottom: 5px ;
+  margin-left: 10px ;
+  margin-right: 10% ;
+  background-color: rgba(0,0,1,0.05) ;
+  border: 4px solid blue ;
+  border-radius: 5px ;
+}
+
+div.sent pre {
+  padding: 5px ;
+}
+
+div.sent pre b {
+  color: blue ;
+}
+
+div.sent h2 {
+  background-color: blue ;
+  margin: 0;
+  color: white ;
+  font-size: 90%;
+}
+
+div.comment {
+  margin-top: 5px ;
+  margin-bottom: 5px ;
+  margin-left: 10px ;
+  margin-right: 10px ;
+  padding: 5px ;
+  background-color: rgba(0,0,0,0.05) ;
+  border: 4px solid lightgrey ;
+  border-radius: 5px ;
+}
+
+div.received {
+  margin-top: 5px ;
+  margin-bottom: 5px ;
+  margin-left: 10% ;
+  margin-right: 10px ;
+  background-color: rgba(0,1,0,0.05) ;
+  border: 4px solid green ;
+  border-radius: 5px ;
+}
+
+div.received pre {
+  padding: 5px ;
+}
+
+div.received pre b {
+  color: green ;
+}
+
+div.received h2 {
+  background-color: green ;
+  margin: 0;
+  color: white ;
+  font-size: 90%;
+}
+
 
 div.enabletitle {
 
