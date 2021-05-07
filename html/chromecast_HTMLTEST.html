@@ -7,7 +7,7 @@
 
 </head>
 
-<body onload="enablefields();resetresponseview();refreshdevicelist('device');"><div class="top">
+<body onload="enablefields();resetresponseview();refreshdevicelist('device');refreshserverinfo('command','medialist');"><div class="top">
 
 <!-- CONTROL -->
 
@@ -22,10 +22,11 @@
 
       <div class="item">
 
-        <select id="command" name="command" onchange="enablefields();">
+        <select id="command" name="command" onmousedown="refreshscriptlist('command');" onchange="enablefields();">
           <option value="devicelist">GET /devicelist</option>
+          <option value="serverinfo">GET /serverinfo</option>
           <option value="jsonquery">POST /jsonquery</option>
-          <option value="command">GET /command</option>
+          <option value="jsonscript">POST /jsonscript</option>
         </select>
 
         <div class="button-with-hint">
@@ -64,35 +65,59 @@
   <div class="controlgroup border" id="commandd">
 
     <div class="controlitem">
-      <div class="label">URI:</div>
+      <div class="label">Param1: </div>
       <div class="item">
-        <input type="text" id="uri" name="uri" value="" placeholder="http://media.stream.url/">
+        <input type="text" id="param1" name="param1" value="" placeholder="url">
+      </div>
+      &nbsp;
+      <div class="item">
+        <input type="text" id="value1" name="value1" value="" placeholder="http://blah/">
       </div>
     </div>
 
     <div class="controlitem">
-      <div class="label">Title</div>
+      <div class="label">Param2: </div>
       <div class="item">
-        <input type="text" id="title" name="title" value="" placeholder="Description of stream">
+        <input type="text" id="param2" name="param2" value="" placeholder="volume">
+      </div>
+      &nbsp;
+      <div class="item">
+        <input type="text" id="value2" name="value2" value="" placeholder="0.2">
       </div>
     </div>
 
     <div class="controlitem">
-      <div class="label">Sleep:</div>
+      <div class="label">Param3: </div>
       <div class="item">
-        <input type="text" id="sleep" name="sleep" value="" placeholder="0">
+        <input type="text" id="param3" name="param3" value="" placeholder="anyparameter">
+      </div>
+      &nbsp;
+      <div class="item">
+        <input type="text" id="value3" name="value3" value="" placeholder="anyvalue">
       </div>
     </div>
 
     <div class="controlitem">
-      <div class="label">Volume:</div>
       <div class="item">
-        <input type="text" id="volume" name="volume" value="" placeholder="0.15">
+        <textarea id="commandvars" placeholder="{&#10;  &quot;url&quot;: &quot;http://blah&quot;&#10;}"></textarea>
+      </div>
+    </div>
+
+
+  </div>
+
+
+  <!-- /jsonscript -->
+
+  <div class="controlgroup border" id="jsonscriptd">
+
+    <div class="controlitem">
+      <div class="item">
+        <textarea id="msgscript" placeholder="{&#10;  &quot;script&quot;: [&#10;  ]&#10;}"></textarea>
       </div>
     </div>
 
   </div>
-
 
   <!-- /jsonquery -->
 
@@ -137,48 +162,67 @@
         Message:
 
         <div class="button-with-hint">
-          <button class="button colour0" onclick="populatejson(1);">CONNECT</button>
-          <div class="hint">Send Connect<br/><i>automatically done for sender-0 / receiver-0</i></div>
-        </div>
-
-        <div class="button-with-hint">
-          <button class="button colour1" onclick="populatejson(2);">STATUS</button>
+          <button class="button colour1" onclick="populatejson(2);">REC STATUS</button>
           <div class="hint">
-            <a href="https://developers.google.com/cast/docs/reference/messages#GetStatus" target="googlehelp">
-              Request status
-            </a>
+            send <a href="https://developers.google.com/cast/docs/reference/messages#GetStatus" target="googlehelp">
+              GET_STATUS
+            </a> request to receiver (use sender-0/receiver-0)
           </div>
         </div>
 
         <div class="button-with-hint">
             <button class="button colour1" onclick="populatejson(3);">VOLUME</button>
             <div class="hint">
-              <a href="https://developers.google.com/cast/docs/reference/messages#SetVolume" target="googlehelp">
-                Adjust speaker volume
-              </a>
+              Send <a href="https://developers.google.com/cast/docs/reference/messages#SetVolume" target="googlehelp">
+                VOLUME
+              </a> command to receiver (use sender-0/receiver-0)
             </div>
         </div>
 
         <div class="button-with-hint">
           <button class="button colour1" onclick="populatejson(4);">LAUNCH</button>
-          <div class="hint">Launch application</div>
+          <div class="hint">
+            Send 
+            LAUNCH 
+            command to receiver, to launch an application (use sender-0/receiver-0)
+          </div>
+        </div>
+
+        <div class="button-with-hint">
+          <button class="button colour0" onclick="populatejson(1);">CONNECT</button>
+          <div class="hint">
+            Send
+            CONNECT
+            command to connect to a launched application<br/>
+            <i>note that the sender-0 / receiver-0 connection automatic</i><br/>
+            Use session-0 as the sender and the sessionid as reported by the LAUNCH command as the receiver
+          </div>
         </div>
 
         <div class="button-with-hint">
             <button class="button colour2" onclick="populatejson(5);">LOAD</button>
             <div class="hint">
-              <a href="https://developers.google.com/cast/docs/reference/messages#Load" target="googlehelp">
-               Load and play media
-              </a>
+              Send <a href="https://developers.google.com/cast/docs/reference/messages#Load" target="googlehelp">
+              LOAD
+              </a> command to media session (session-0 / sessionid)
             </div>
         </div>
 
         <div class="button-with-hint">
             <button class="button colour2" onclick="populatejson(6);">PAUSE</button>
             <div class="hint">
-              <a href="https://developers.google.com/cast/docs/reference/messages#Pause" target="googlehelp">
-                Pause playback
-              </a>
+              Send <a href="https://developers.google.com/cast/docs/reference/messages#Pause" target="googlehelp">
+              PAUSE
+              </a> command to media session (session-0 / sessionid)
+            </div>
+        </div>
+
+        <div class="button-with-hint">
+            <button class="button colour2" onclick="populatejson(7);">MEDIA STATUS</button>
+            <div class="hint">
+              Send <a href="https://developers.google.com/cast/docs/reference/messages#GetStatus" target="googlehelp">
+                GET_STATUS
+              </a> request to media session (session-0 / sessionid)
             </div>
         </div>
 
@@ -186,6 +230,10 @@
       <div class="item"><textarea id="message" placeholder="{ ... }"></textarea></div>
     </div>
 
+  </div>
+
+  <div class="controlgroup border" id="medialistd">
+    <div id="medialist"></div>
   </div>
 
 </div>

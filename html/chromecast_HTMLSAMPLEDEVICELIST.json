@@ -10,13 +10,13 @@
             "netClass": "_googlecast._tcp.local",
             "connection": "connected",
             "idle": 4,
-            "media": {
+            "vars": {
                 "appId": "CC1AD845",
                 "playerState": "PLAYING",
                 "displayName": "Default Media Receiver",
                 "statusText": "Casting: BBC Radio 4 Extra",
-                "transportId": "640c3046-8c4f-4980-90c5-fc6930280e77",
-                "sessionId": "640c3046-8c4f-4980-90c5-fc6930280e77"
+                "sessionId": "640c3046-8c4f-4980-90c5-fc6930280e77",
+                "mediaSessionId": 3
             }
         },
         {
@@ -29,13 +29,13 @@
             "netClass": "_googlecast._tcp.local",
             "connection": "connected",
             "idle": 1,
-            "media": {
+            "vars": {
                 "appId": "CC1AD845",
                 "playerState": "BUFFERING",
                 "displayName": "Default Media Receiver",
                 "statusText": "Casting: Sports Live",
-                "transportId": "6d81d8c0-ba16-4a95-95fe-d69b259d7698",
-                "sessionId": "6d81d8c0-ba16-4a95-95fe-d69b259d7698"
+                "sessionId": "6d81d8c0-ba16-4a95-95fe-d69b259d7698",
+                "mediaSessionId": 1
             }
         },
         {
@@ -48,13 +48,13 @@
             "netClass": "_googlecast._tcp.local",
             "connection": "connected",
             "idle": 120,
-            "media": {
+            "vars": {
                 "appId": "E8C28D3C",
                 "playerState": "",
                 "displayName": "Backdrop",
                 "statusText": "",
-                "transportId": "c6e51dd9-4fc5-48b7-9fa1-3734ba1378a6",
-                "sessionId": "c6e51dd9-4fc5-48b7-9fa1-3734ba1378a6"
+                "sessionId": "c6e51dd9-4fc5-48b7-9fa1-3734ba1378a6",
+                "mediaSessionId": 0
             }
         },
         {
@@ -67,13 +67,13 @@
             "netClass": "_googlecast._tcp.local",
             "connection": "connected",
             "idle": 4,
-            "media": {
+            "vars": {
                 "appId": "",
                 "playerState": "",
                 "displayName": "",
                 "statusText": "",
-                "transportId": "",
-                "sessionId": ""
+                "sessionId": "",
+                "mediaSessionId": 0
             }
         }
     ],

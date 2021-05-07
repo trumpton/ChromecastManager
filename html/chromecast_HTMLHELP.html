@@ -120,11 +120,79 @@ syslog</p>
 <p>Arguments: none</p>
 <p>Action: accesses the Test Playground</p>
 
+<p class="subtitle"><b><a href="/serverinfo" target="serverinfo">/serverinfo</a></b><p>
+<p>Arguments: none</p>
+<p>Action: Return JSON structure listing system variables and also the available
+media on the chromecastmanager server</p>
+
+<div class="sent">
+<p><b>GET /serverinfo</b></p>
+</div>
+
+<div class="received">
+<pre>
+<b>200 OK</b>
+{
+  "vars": {
+    "serverIpAddress": "192.168.11.100",
+    "serverPort": 9000
+  },
+  "media": {
+      "logo": "http://192.168.1.100:9000/logo.png",
+      "pp": "http://192.168.1.100:9000/pp.png",
+      "alert1": "http://192.168.1.100:9000/alert1.ogg",
+      "alert2": "http://192.168.1.100:9000/alert2.ogg"
+  },
+  "status":"OK"
+}
+</pre>
+</div>
+
 <p class="subtitle"><b><a href="/devicelist" target="dl">/devicelist</a></b></p>
 <p>Arguments: none</p>
 <p>Action: returns a JSON structure containing all of the chromecast 
 devices which have been detected on the network using MDNS</p>
-<p>Returns: 200 OK if successful</p>
+<p>Devices also have a vars section, which contains variables which are
+automatically updated whenever responses or broadcast messages are received.
+These are extendible, and may be used when submitting requests</p>
+
+<div class="sent">
+<p><b>GET /devicelist</b></p>
+</div>
+
+<div class="received">
+<pre>
+<b>200 OK</b>
+{
+  "devicelist":[
+    {
+      "friendlyName":"Living Room Chromecast Audio",
+      "ipAddress":"192.168.1.201",
+      "port":8009,
+      "id":"12345678fdd3ecaf3c290ef812345678",
+      "networkName":"12345678-fdd3-ecaf-3c29-0ef812345678.local",
+      "deviceName":"Chromecast-Audio-12345678fdd3ecaf3c290ef812345678._googlecast._tcp.local",
+      "netClass":"_googlecast._tcp.local",
+      "connection":"connected",
+      "idle":31,
+      "vars":{
+        "lastMessageNamespace":"urn:x-cast:com.google.cast.receiver",
+        "lastMessageType":"RECEIVER_STATUS",
+        "sessionId":"160378b4-b164-4306-ac76-05412a37ecf6",
+        "appId":"CC1AD845",
+        "statusText":"Default Media Receiver",
+        "playerState":"IDLE",
+        "mediaSessionId":"1",
+        "count":7
+      }
+    }
+  ],
+  "deviceCount":1,
+  "status":"OK"
+}
+</pre>
+</div>
+
 
 <p class="subtitle"><b><a href="/sampledevicelist" target="sdl">/sampledevicelist</a></b></p>
 <p>Arguments: none</p>
@@ -179,8 +247,7 @@ GET /command?device=Kitchen%2FSpeaker&volume=0.1&uri=http%3A%2F%2Flive.stream.co
 </div>
 
 
-
-<div class="enabletitle" onclick="toggleview('posttransactions', null);">Post Transactions</div>
+<div class="enabletitle" onclick="toggleview('posttransactions', null);">Post Query Transactions</div>
 <div class="helpsection" style="display:none" id="posttransactions">
 
 <p class="subtitle"><b>/jsonquery?device=friendlyName</b></p>
@@ -193,7 +260,7 @@ can be determied through a <a href="/devicelist" target="dl">/devicelist</a> que
 <div class="sent">
 <h2>POST JSON Query</h2>
 <pre>
-POST /command?device=<i>device%20name</i>
+POST /jsonquery?device=<i>device%20name</i>
 {
   "sender": "e.g. sender-0"
   "receiver": "e.g. receiver-0"
@@ -232,12 +299,50 @@ receiver, namespace and message (this time, the response)</p>
 </div>
 
 
+<div class="enabletitle" onclick="toggleview('postvariables', null);">Post Variables</div>
+<div class="helpsection" style="display:none" id="postvariables">
+
+<p>Chromecast manager has the capability of watching broadcast and response messages
+from chromecast devices, and cacheing particular parameters in variables.  There are 
+several default variables, the current values of which can be seen in the /devicelist
+json report (under vars).</p>
+<p>Additional watch variables can be added when using the Post Command, which is discussed
+in the next section</p>
+<p>Finally, there are some built-in variables available in the vars section of the /serverinfo
+report page</p>
+
+<p>To use the variables in the query messages, simply place a dollar character infront of
+the variable name in the json source, for example:</p>
+
+<div class="sent">
+<h2>SEND: Connection Request</h2>
+<pre>
+{
+    "namespace": "urn:x-cast:com.google.cast.connection",
+    "sender": "session-1",
+    "receiver": "<b>$sessionId</b>",
+    "message": {
+        "type": "CONNECT"
+    }
+}
+</pre></div>
+
+</div>
+
+
+<div class="enabletitle" onclick="toggleview('postmacro', null);">Post Batch Command</div>
+<div class="helpsection" style="display:none" id="postmacro">
+
+<p>Commands can be batched up into json-style scripts</p>
+
+</div>
+
 
 <div class="enabletitle" onclick="toggleview('example1', null);">Example: Connect and Get Status</div>
 <div class="helpsection" style="display:none" id="example1">
 
 <div class="comment">
-<p>The first thing to do is to open a connection to the chromecast receiver.  Note that CONNECT does not return anything</p>
+<p>The first thing to do is to open a connection to the chromecast receiver.  Note that CONNECT does not return anything.  Note also that chromecastmanager automatically issues the CONNECT commands for sender-0 to receiver-0 connections.</p>
 </div>
 
 <div class="sent">
@@ -332,20 +437,19 @@ receiver, namespace and message (this time, the response)</p>
 
 <div class="sent">
 <h2>SEND: Set Volume to 10%</h2>
+<p><b>URL: /jsonquery?device=Speaker%20name</b></p>
 <pre>
-{
 {
     "namespace": "urn:x-cast:com.google.cast.receiver",
     "sender": "sender-0",
     "receiver": "receiver-0",
     "message": {
-        "requestId": 2,
+        "requestId": 1,
         "type": "SET_VOLUME",
         "volume": {
             "level": 0.1
         }
     }
-}
 }
 </pre></div>
 
@@ -396,6 +500,7 @@ receiver, namespace and message (this time, the response)</p>
 
 <div class="sent">
 <h2>SEND: Launch Default Media Receiver</h2>
+<p><b>URL: /jsonquery?device=Speaker%20name</b></p>
 <pre>
 {
     "namespace": "urn:x-cast:com.google.cast.receiver",
@@ -443,9 +548,9 @@ receiver, namespace and message (this time, the response)</p>
                             "name": "urn:x-cast:com.google.cast.media"
                         }
                     ],
-                    "sessionId": "548e1a97-76ad-4fb9-8e1f-bbecb0485c39",
+                    "sessionId": "<b>98e301ef-305d-4edc-9ac2-7b5031810d0f</b>",
                     "statusText": "Default Media Receiver",
-                    "transportId": <b>"548e1a97-76ad-4fb9-8e1f-bbecb0485c39"</b>,
+                    "transportId": "98e301ef-305d-4edc-9ac2-7b5031810d0f",
                     "universalAppId": "CC1AD845"
                 }
             ],
@@ -477,25 +582,31 @@ receiver, namespace and message (this time, the response)</p>
 </pre></div>
 
 <div class="comment">
-<p>Looking at the receiver status, you will now see that the application has a transportId - this is the channel
+<p>Looking at the receiver status, you will now see that the application has a sessionId - this is the channel
 which should be used for all communication with the application.  In order to tell the application to play a 
-specific media stream, it is necessary to open a new connection (note the different sender and receiver), then issue a LOAD command</p>
-<p>Note also that all of the transportIds for devices which are currently running applications are reported
-in the /devicelist report</p>
+specific media stream, it is necessary to open a new connection (note the different sender and receiver).</p>
+<p>Note also that all of the sessionIDs for devices which are currently running applications are reported
+in the /devicelist report.</p>
 </div>
 
 <div class="sent">
 <h2>SEND: Connect to the Default Media Receiver</h2>
 <pre>
 {
-    "namespace": "urn:x-cast:com.google.cast.connection",
-    "sender": <b>"sender-1"</b>,
-    "receiver": <b>"548e1a97-76ad-4fb9-8e1f-bbecb0485c39"</b>,
+    "namespace": "urn:x-cast:com.google.cast.tp.connection",
+    "sender": "session-1",
+    "receiver": "<b>98e301ef-305d-4edc-9ac2-7b5031810d0f</b>",
     "message": {
         "type": "CONNECT"
     }
 }
-}</pre></div>
+</pre></div>
+
+<div class="comment">
+<p>In this example, for the load command, the <b>$sessionId</b> watch variable is used.  This is exactly
+the same as using <b>98e301ef-305d-4edc-9ac2-7b5031810d0f</b>, but this method allows for the creation
+of generic scripts / command sequences.</p>
+</div>
 
 <div class="sent">
 <h2>SEND: Issue the Load Command</h2>
@@ -503,8 +614,8 @@ in the /devicelist report</p>
 {
 {
     "namespace": "urn:x-cast:com.google.cast.media",
-    "sender": "sender-1",
-    "receiver": "548e1a97-76ad-4fb9-8e1f-bbecb0485c39",
+    "sender": "session-1",
+    "receiver": "<b>$sessionId</b>",
     "message": {
         "requestId": 4,
         "type": "LOAD",
@@ -535,8 +646,8 @@ unsuccessful load respectively:</p>
 <pre>
 {
     "namespace": "urn:x-cast:com.google.cast.media",
-    "sender": "548e1a97-76ad-4fb9-8e1f-bbecb0485c39",
-    "receiver": "sender-1",
+    "sender": "98e301ef-305d-4edc-9ac2-7b5031810d0f",
+    "receiver": "session-1",
     "datatype": 0,
     "message": {
         "type": "MEDIA_STATUS",
@@ -566,8 +677,8 @@ unsuccessful load respectively:</p>
 <pre>
 {
     "namespace": "urn:x-cast:com.google.cast.media",
-    "sender": "548e1a97-76ad-4fb9-8e1f-bbecb0485c39",
-    "receiver": "sender-1",
+    "sender": "98e301ef-305d-4edc-9ac2-7b5031810d0f",
+    "receiver": "session-1",
     "datatype": 0,
     "message": {
         "requestId": 4,

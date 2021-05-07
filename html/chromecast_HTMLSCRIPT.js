@@ -30,6 +30,30 @@ function processform()
     url="/devicelist" ;
     body= null ;
     
+  } else if (commands == "jsonscript" ) {
+
+    /////////////////////////////////
+    // Prepare /jsonscript request POST
+
+    var msgscript = document.getElementById("msgscript") ;
+
+    try {
+
+      body = JSON.parse(msgscript.value) ;
+      headers['Content-Type'] = "application/json" ;
+      method = "POST" ;
+
+    } catch (e) {
+
+      url = null ;
+      responsetxt = "<p><b>Error parsing JSON - request not sent:</b></p>" +
+                    "<p><i>" + getsampleerror(msgscript.value, e) + "</i></p>"
+
+      document.getElementById("response").innerHTML = responsetxt ;
+
+    }
+
+
   } else if (commands == "jsonquery" ) {
 
     /////////////////////////////////
@@ -62,8 +86,9 @@ function processform()
     } catch (e) {
 
       url = null ;
+
       responsetxt = "<p><b>Error parsing JSON - request not sent:</b></p>" +
-                    "<p><b><i>" + e + "</i></b></p>"
+                    "<p><i>" + getsampleerror(msgscript.value, e) + "</i></p>"
 
       document.getElementById("response").innerHTML = responsetxt ;
 
@@ -72,29 +97,47 @@ function processform()
   } else {
 
     /////////////////////////////////
-    // Prepare other ones
+    // Append the custom parameters
 
-    var volume = document.getElementById("volume");
-    var volumef = volume ? volume.value : 0.0 ;
-    var sleep = document.getElementById("sleep");
-    var sleepi = sleep ? sleep.value : 0 ;
-    var title = document.getElementById("title");
-    var titles = sleep ? title.value : "" ;
-    var uri = document.getElementById("uri");
-    var uris = uri ? uri.value : "" ;
+    var param1 = document.getElementById("param1") ;
+    var param1s = param1?param1.value:"" ;
+    var value1 = document.getElementById("value1") ;
+    var value1s = param1?value1.value:"" ;
 
-    if (volume && volume.value != "" && volumef>=0) {
-      url = url + "&volume=" + volumef ;
-    }
+    var param2 = document.getElementById("param2") ;
+    var param2s = param2?param2.value:"" ;
+    var value2 = document.getElementById("value2") ;
+    var value2s = param2?value2.value:"" ;
 
-    if (uri && sleep && title && uris!="") {
-      url = url + "&uri=" + encodeURIComponent(uris) ;
-      if (sleep.value != "") {
-        url = url + "&sleep=" + sleepi ;
+    var param3 = document.getElementById("param3") ;
+    var param3s = param3?param3.value:"" ;
+    var value3 = document.getElementById("value3") ;
+    var value3s = param3?value3.value:"" ;
+
+    if (param1s!="") url = url + "&" + param1s + "=" + encodeURIComponent(value1s) ;
+    if (param2s!="") url = url + "&" + param2s + "=" + encodeURIComponent(value2s) ;
+    if (param3s!="") url = url + "&" + param3s + "=" + encodeURIComponent(value3s) ;
+
+    var commandvars = document.getElementById("commandvars") ;
+
+    if ( commandvars && commandvars.value != "" ) {
+
+      try {
+
+        body = JSON.parse(commandvars.value) ;
+        headers['Content-Type'] = "application/json" ;
+        method = "POST" ;
+
+      } catch (e) {
+
+        url = null ;
+        responsetxt = "<p><b>Error parsing JSON - request not sent:</b></p>" +
+                      "<p><i>" + getsampleerror(commandvars.value, e) + "</i></p>"
+
+        document.getElementById("response").innerHTML = responsetxt ;
+
       }
-      if (titles!="") {
-        url = url + "&title=" + encodeURIComponent(titles) ;
-      }
+
     }
 
   }
@@ -219,20 +262,31 @@ function enablefields()
   var commands = command ? command.value : "" ;
   var deviced = document.getElementById("deviced");
   var jsonqueryd = document.getElementById("jsonqueryd");
+  var jsonscriptd = document.getElementById("jsonscriptd");
   var commandd = document.getElementById("commandd");
 
   deviced.style.display = "none" ;
   jsonqueryd.style.display = "none" ;
+  jsonscriptd.style.display = "none" ;
   commandd.style.display = "none" ;
+  medialistd.style.display = "none" ;
 
   if (commands=="devicelist") {
     // Nothing to do
+  } else if (commands=="serverinfo") {
+    // Nothing to do
+  } else if (commands=="jsonscript") {
+    deviced.style.display = "block";
+    jsonscriptd.style.display = "block" ;
+    medialistd.style.display = "block" ;
   } else if (commands=="jsonquery") {
     deviced.style.display = "block";
     jsonqueryd.style.display = "block" ;
-  } else if (commands=="command") {
+    medialistd.style.display = "block" ;
+  } else {
     deviced.style.display = "block";
     commandd.style.display = "block" ;
+    medialistd.style.display = "block" ;
   }
 }
 
@@ -241,10 +295,16 @@ function populatejson(i)
 {
   var message = document.getElementById("message") ;
   var namespace = document.getElementById("namespace") ;
-  if (!message || !namespace) return ;
+  var sender = document.getElementById("sender") ;
+  var receiver = document.getElementById("receiver") ;
+
+  if (!message || !namespace || !sender || !receiver) return ;
+
   switch(i) {
 
-  case 1: namespace.value = "urn:x-cast:com.google.cast.connection" ;
+  case 1: namespace.value = "urn:x-cast:com.google.cast.tp.connection" ;
+          sender.value = "session-0" ;
+          receiver.value = "$sessionId" ;
           message.value = 
             "{\n" +
             "  \"type\" : \"CONNECT\"\n" +
@@ -252,6 +312,8 @@ function populatejson(i)
           break ;
 
   case 2: namespace.value = "urn:x-cast:com.google.cast.receiver" ;
+          sender.value = "sender-0" ;
+          receiver.value = "receiver-0" ;
           message.value = 
             "{\n  \"requestId\" : 1,\n" +
             "  \"type\" : \"GET_STATUS\"\n" +
@@ -259,6 +321,8 @@ function populatejson(i)
           break ;
 
   case 3: namespace.value = "urn:x-cast:com.google.cast.receiver" ;
+          sender.value = "sender-0" ;
+          receiver.value = "receiver-0" ;
           message.value =
             "{\n" +
             "  \"requestId\" : 1,\n" +
@@ -270,6 +334,8 @@ function populatejson(i)
              break ;
 
   case 4: namespace.value = "urn:x-cast:com.google.cast.receiver" ;
+          sender.value = "sender-0" ;
+          receiver.value = "receiver-0" ;
           message.value =
             "{\n" +
             "  \"type\": \"LAUNCH\",\n" +
@@ -279,34 +345,28 @@ function populatejson(i)
             break ;
 
   case 5: namespace.value = "urn:x-cast:com.google.cast.media" ;
+          sender.value = "session-0" ;
+          receiver.value = "$sessionId" ;
           message.value = 
             "{\n" +
             "  \"requestId\": 1,\n" +
             "  \"type\": \"LOAD\",\n" +
             "  \"autoplay\": true,\n" +
             "  \"media\": {\n" +
-            "    \"contentId\": \"http://live7.avf.ch:8000/ipmusicslow320\",\n" +
+            "    \"contentId\": \"http://www.vizier.uk/mediafiles/Test1.ogg\",\n" +
             "    \"streamType\": \"LIVE\",\n" +
-            "    \"contentType\": \"audio/mpeg\"\n" +
+            "    \"contentType\": \"audio/ogg\",\n" +
+            "    \"metadata\": {\n" +
+            "       \"metadataType\": 0,\n" +
+            "       \"title\": \"Test 1 Sample\"\n" +
+            "    }\n" +
             "  }\n" +
             "}" ;
           break ;
-/*
-
-http://www.vizier.uk/mediafiles/Test/440hz.mp3
-
-This is the openhab binding which has the launch / load calls
-
-https://github.com/alexreinert/openhab2-addons/blob/master/addons/binding/org.openhab.binding.chromecast/src/main/java/org/openhab/binding/chromecast/internal/ChromecastCommander.java
-
-This git repository is the underlying chromecast library used by openhab
-In the middle of it should be chromeCast.load(title, null, url, mimeType)
-
-https://github.com/vitalidze/chromecast-java-api-v2/blob/master/src/main/java/su/litvak/chromecast/api/v2/Channel.java
-
-*/
 
   case 6: namespace.value = "urn:x-cast:com.google.cast.media" ;
+          sender.value = "session-0" ;
+          receiver.value = "$sessionId" ;
           message.value =
             "{\n" +
             "  \"type\": \"PAUSE\",\n" +
@@ -314,6 +374,15 @@ https://github.com/vitalidze/chromecast-java-api-v2/blob/master/src/main/java/su
             "  \"requestId\": 2\n" +
             "}" ;
              break ;
+
+  case 7: namespace.value = "urn:x-cast:com.google.cast.media" ;
+          sender.value = "session-0" ;
+          receiver.value = "$sessionId" ;
+          message.value = 
+            "{\n  \"requestId\" : 1,\n" +
+            "  \"type\" : \"GET_STATUS\"\n" +
+            "}" ;
+          break ;
 
   default:message.value = "{}" ;
           break ;
@@ -375,6 +444,7 @@ function refreshdevicelist(tag)
 
             var option=document.createElement("option") ;
             option.text=json.devicelist[i].friendlyName ;
+            option.value=json.devicelist[i].friendlyName ;
             select.add(option) ;
 
           }
@@ -392,6 +462,77 @@ function refreshdevicelist(tag)
 }
 
 
+function refreshserverinfo(selecttag, mediatag)
+{
+
+  fetch( "/serverinfo" , null )
+
+  .then( response => response.text() )
+
+  .then( text => {
+
+    try {        
+
+      var json = JSON.parse(text) ;
+
+      if (json && json.scripts) {
+    
+        // add to select
+
+        var select=document.getElementById(selecttag) ;
+
+        if (select) {
+
+          for (i=0; i<json.scripts.length; i++) {
+
+            if ( !selecthasoption(select, json.scripts[i]) ) {
+
+              var option=document.createElement("option") ;
+              option.text="GET/PUT /" + json.scripts[i] ;
+              option.value= json.scripts[i] ; 
+              select.add(option) ;
+
+            }
+
+          }
+    
+        }
+
+      } 
+
+      if (json && json.media) {
+    
+        // add to media list
+
+        var medialist=document.getElementById(mediatag) ;
+
+        if (medialist) {
+
+          var lst = "" ;
+
+          for (var key in json.media) {
+            if (json.media.hasOwnProperty(key)) {
+              lst = lst + "<li>" + json.media[key] + "</li>" ;
+            }
+          }
+
+          medialist.innerHTML = "<p><b>Test Media</b></p><ul>" + lst + "</ul>" ;
+
+        }
+
+      }
+
+    } catch (e) {
+
+      console.log("error accessing / parsing /serverinfo json") ;
+
+    }
+    
+  }) ;
+
+}
+
+
 function selecthasoption(select, value)
 {
   if ( !select || !select.options || !select.options.length ) return false ; 
@@ -400,11 +541,35 @@ function selecthasoption(select, value)
 
   for (var i=0; i<len; i++) {
 
-    if (select.options[i].text == value) return true ;
+    if (select.options[i].value == value) return true ;
 
   }
 
   return false ;
+}
+
+
+function getsampleerror(json, errmsg)
+{
+  var str = "" + errmsg ;
+  var matches = str.match(/\d+/g);
+  var errpos = -1 ;
+  if (matches) errpos = parseInt(0 + matches[0]) ;
+  var sample="" ;
+
+  if (errpos>0) {
+    var from = errpos-60 ;
+    var to = errpos+60 ;
+    if (from<0) from=0 ;
+    if (to>json.length) to=json.length;
+
+    sample = json.substring(from,errpos) + 
+             "<b><u>&nbsp;" + json.substring(errpos,errpos+1) + "&nbsp;</u></b>" + 
+             json.substring(errpos+1, to) + "<br/>"  ;
+
+  }
+
+  return "<p>" + str + "</p><p>" + sample + "</p>" ;
 }
 
 
