@@ -15,8 +15,13 @@
 #include "chromecast_HTMLHELP.htmlh"
 #include "chromecast_HTML404.htmlh"
 #include "chromecast_BINICON.pngh"
-#include "chromecast_BINALERT.mp3h"
+#include "chromecast_BINALERT1.oggh"
+#include "chromecast_BINALERT2.oggh"
+#include "mixkit_TEST1.oggh"
+#include "mixkit_TEST2.oggh"
 #include "chromecast_BINPP.pngh"
+#include "chromecast_BINIMG1.jpgh"
+#include "chromecast_BINIMG2.jpgh"
 
 int html_filesystem(char *path, char **data, char **mediatype, int *len)
 {
@@ -50,18 +55,53 @@ int html_filesystem(char *path, char **data, char **mediatype, int *len)
     *len = BINPP_LEN ;
     return 1 ;
 
-  } else if (strcasecmp(path, "/favicon.ico")==0) {
+  } else if (strcasecmp(path, "/favicon.ico")==0 || strcasecmp(path, "/logo.png")==0) {
 
     *data = BINICON_DATA ;
     *mediatype = BINICON_MEDIATYPE ;
     *len = BINICON_LEN ;
     return 1 ;
 
-  } else if (strcasecmp(path, "/alert.mp3")==0) {
+ } else if (strcasecmp(path, "/test1.jpg")==0) {
 
-    *data = BINALERT_DATA ;
-    *mediatype = BINALERT_MEDIATYPE ;
-    *len = BINALERT_LEN ;
+    *data = BINIMG1_DATA ;
+    *mediatype = BINIMG1_MEDIATYPE ;
+    *len = BINIMG1_LEN ;
+    return 1 ;
+
+ } else if (strcasecmp(path, "/test2.jpg")==0) {
+
+    *data = BINIMG2_DATA ;
+    *mediatype = BINIMG2_MEDIATYPE ;
+    *len = BINIMG2_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/alert1.ogg")==0) {
+
+    *data = BINALERT1_DATA ;
+    *mediatype = BINALERT1_MEDIATYPE ;
+    *len = BINALERT1_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/alert2.ogg")==0) {
+
+    *data = BINALERT2_DATA ;
+    *mediatype = BINALERT2_MEDIATYPE ;
+    *len = BINALERT2_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/test1.ogg")==0) {
+
+    *data = TEST1_DATA ;
+    *mediatype = TEST1_MEDIATYPE ;
+    *len = TEST1_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/test2.ogg")==0) {
+
+    *data = TEST2_DATA ;
+    *mediatype = TEST2_MEDIATYPE ;
+    *len = TEST2_LEN ;
     return 1 ;
 
   } else if (strcasecmp(path, "/site.css")==0) {
