@@ -228,7 +228,7 @@ int chromecast_mdns_refresh(int tickrate, int sendenabled, int forcesend)
 
       if (_chromecast_mdns_entry[i].ttlcount <= tickrate) {
 
-        logmsg(LOG_INFO, "removing device: %s @ %s:%d", 
+        logmsg(LOG_DEBUG, "mdns: removing device: %s @ %s:%d", 
                         _chromecast_mdns_entry[i].friendlyname, 
                         _chromecast_mdns_entry[i].ipaddress, 
                         _chromecast_mdns_entry[i].port) ;
@@ -466,7 +466,7 @@ int _chromecast_mdns_setentry( mem *netclass, unsigned int ttl, unsigned int war
 
   if (entry<0) {
 
-    logmsg(LOG_INFO, "found device: %s @ %s:%d", friendlyname, ipaddress, port) ;
+    logmsg(LOG_DEBUG, "mdns: found device: %s @ %s:%d", friendlyname, ipaddress, port) ;
     entry=firstempty ;
 
   }

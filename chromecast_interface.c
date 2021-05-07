@@ -17,9 +17,14 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 #include "libtools/net.h"
 #include "libtools/log.h"
+#include "libtools/mem.h"
+#include "libtools/str.h"
+#include "libtools/httpd.h"
+
 #include "libdataobject/dataobject.h"
 
 #include "chromecast_interface.h"
@@ -77,6 +82,36 @@ CHROMECAST *ccnew()
   CHROMECAST *cch = malloc(sizeof(CHROMECAST)) ;
   if (!cch) return NULL ;
   memset(cch, '\0', sizeof(CHROMECAST)) ;
+
+  cch->vars = donew() ;
+
+  // Add Default Watches
+
+  ccaddwatch( cch, "sessionId",
+              "urn:x-cast:com.google.cast.receiver", 
+              "RECEIVER_STATUS",
+              "/message/status/applications/0/sessionId") ;
+
+  ccaddwatch( cch, "appId",
+              "urn:x-cast:com.google.cast.receiver", 
+              "RECEIVER_STATUS",
+              "/message/status/applications/0/appId") ;
+
+  ccaddwatch( cch, "statusText",
+              "urn:x-cast:com.google.cast.receiver", 
+              "RECEIVER_STATUS",
+              "/message/status/applications/0/statusText") ;
+
+  ccaddwatch( cch, "playerState",
+              "urn:x-cast:com.google.cast.media", 
+              "MEDIA_STATUS",
+              "/message/status/0/playerState") ;
+
+  ccaddwatch( cch, "mediaSessionId",
+              "urn:x-cast:com.google.cast.media", 
+              "MEDIA_STATUS",
+              "/message/status/0/mediaSessionId") ;
+
   return cch ;
 }
 
@@ -129,26 +164,21 @@ int ccdisconnect(CHROMECAST *cch)
   if (!cch) return 0 ;
 
   if (cch->ssl) netclose(cch->ssl) ;
+  if (cch->vars) dodelete(cch->vars) ;
   if (cch->recvobject) dodelete(cch->recvobject) ;
   if (cch->sendobject) dodelete(cch->sendobject) ;
   if (cch->recvbuf) free(cch->recvbuf) ;
-  if (cch->receivertransportid) free(cch->receivertransportid) ;
-  if (cch->receiversessionid) free(cch->receiversessionid) ;
-  if (cch->receiverappid) free(cch->receiverappid) ;
-  if (cch->receiverdisplayname) free(cch->receiverdisplayname) ;
-  if (cch->receiverstatustext) free(cch->receiverstatustext) ;
-  if (cch->playerstate) free(cch->playerstate) ;
+  if (cch->macro) free(cch->macro) ;
+  if (cch->httpsessionvars) free(cch->httpsessionvars) ;
 
   cch->ssl=NULL ;
+  cch->vars=NULL ;
   cch->recvobject=NULL ;
   cch->sendobject=NULL ;
   cch->recvbuf=NULL ;
-  cch->receivertransportid=NULL ;
-  cch->receiversessionid=NULL ;
-  cch->receiverappid=NULL ;
-  cch->receiverdisplayname=NULL ;
-  cch->receiverstatustext=NULL ;
-  cch->playerstate=NULL ;
+  cch->macro=NULL ;
+  cch->httpsessionvars=NULL ;
+
   cch->recvstate=REC_START ;
   cch->recvsize=0 ;
   cch->recvlen=0 ;
@@ -370,6 +400,193 @@ fail:
 
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Search for variable, and return data object
+
+DATAOBJECT *_cc_find_var(DATAOBJECT *root, char *variable)
+{
+  if (!root || !variable) return NULL ;
+  return dofindnode(root, "/%s", variable) ;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Add variable to watch list
+// @param(in) cch Handle of chromecast device
+// @param(in) variable Name of variable
+// @param(in) namespace Namespace to use in search
+// @param(in) type Message type ("*" for any)
+// @param(in) path Path to variable in namespace to add to watch
+// @return True if watch could be added
+//
+
+int ccaddwatch(CHROMECAST *cch, char *variable, char *namespace, char *type, char *path)
+{
+  if (!cch || !cch->vars) return 0 ;
+
+  dosetdata(cch->vars, do_string, variable, strlen(variable), "/%s/variable", variable) ;
+  dosetdata(cch->vars, do_string, path, strlen(path), "/%s/path", variable) ;
+  dosetdata(cch->vars, do_string, namespace, strlen(namespace), "/%s/namespace", variable) ;
+  dosetdata(cch->vars, do_string, type, strlen(type), "/%s/type", variable) ;
+  dosetdata(cch->vars, do_string, "", 0, "/%s/value", variable) ;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Set variable value (string, int or float)
+// @param(in) cch Handle of chromecast device
+// @param(in) variable Name of variable
+// @param(in) value Value to be stored
+// @return True if value could be added
+
+int ccsetwatch(CHROMECAST *cch, char *variable, char *value)
+{
+  if (!cch || !variable || !value) return 0 ;
+  if (!dogetdata(cch->vars, do_string, NULL, "/%s/value"), variable) return 0 ;
+  dosetdata(cch->vars, do_string, value, strlen(value), "/%s/value", variable) ;
+  return 1 ;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Return the value for the named variable (string, int or float)
+// @param(in) cch Handle of chromecast device
+// @param(int) variable Variable name
+// @return Pointer to string, or ""
+//
+
+char *ccgetwatch(CHROMECAST *cch, char *variable)
+{
+  DATAOBJECT *dh = _cc_find_var(cch->vars, variable) ;
+  if (!dh) return "" ;
+  else return dogetdata(dh, do_string, NULL, "/value") ;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Return the variable details at the given index
+// @param(in) cch Handle of chromecast device
+// @param(in) index Index of variable
+// @return Variable details or NULL if not found
+
+char * ccgetwatchvarnameat(CHROMECAST *cch, int index) 
+{
+  DATAOBJECT *node = dochild(donoden(cch->vars, index)) ;
+  if (!node) return NULL ;
+  return dogetdata(node, do_string, NULL, "/variable") ;
+}
+
+char * ccgetwatchat(CHROMECAST *cch, int index)
+{
+  DATAOBJECT *node = dochild(donoden(cch->vars, index)) ;
+  if (!node) return NULL ;
+  return dogetdata(node, do_string, NULL, "/value") ;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Expand the variables in the given buffer
+// @param(in) vars Pointer to a variables structure
+// @param(in) buf Pointer to string buffer
+// @return True on success
+//
+
+int ccexpandvariables(DATAOBJECT *vars, mem *buf)
+{
+  if (!vars || !buf) return 0 ;
+
+  DATAOBJECT *vh ;
+  int i=0 ;
+  char varstr[128] ;
+  mem *values ;
+
+ // Replace IP Address and Port
+
+  char intbuf[64] ;
+  snprintf(intbuf, sizeof(intbuf)-1, "%d", httpd_port()) ;
+
+  str_replaceall(buf, "$(serverIpAddress)", httpd_ipaddress()) ;
+  str_replaceall(buf, "$(serverPort)", intbuf) ;
+
+
+  while (vh=dochild(donoden(vars,i))) {
+
+     // Get variable data
+
+     char *variable = dogetdata(vh, do_string, NULL, "/variable") ;
+     char *value = dogetdata(vh, do_string, NULL, "/value") ;
+
+     if (variable && value) {
+
+       // Replace quotes in value
+
+       values = mem_malloc(strlen(value)+1024) ;
+       if (!values) return 0 ;
+       str_strcpy(values, value) ;
+       str_replaceall(values, "\"", "\\\"") ;
+
+       // Generate $(variable) name string
+
+       snprintf(varstr, sizeof(varstr)-1, "$(%s)", variable) ;
+
+       // Do replace & tidy up
+
+       str_replaceall(buf, varstr, values) ;
+       mem_free(values) ;
+
+     }
+
+     i++ ;
+  }
+
+  return 1 ;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Purge any variables which have not been expanded
+// @param(in) buf Pointer to string buffer
+// @return True on success
+//
+
+int ccpurgeremainingvars(mem *buf)
+{
+
+  char *search ;
+  while ( search=strstr(buf, "$") ) {
+
+    int searchindex = ((void*)search - (void *)buf) ;
+    int len = 1 ;
+
+    if (buf[searchindex+len]=='(') {
+
+      len++ ;
+      while ( isalnum(buf[searchindex+len]) || buf[searchindex+len]=='_' ) {
+        len++ ;
+      }
+
+      if (buf[searchindex+len]==')') {
+        len++ ;
+        str_insert(buf, searchindex,  len, "") ;
+      }
+
+    }
+
+  }
+
+  return 1 ;
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 // @brief Process input
@@ -424,9 +641,8 @@ int _cc_processinputmessage(CHROMECAST *cch)
       char *sender = dogetdata(cch->recvobject, do_string, NULL, "/sender") ;
       if ( getenv("PINGLOGENABLE") || (sender && strcmp(sender, "Tr@n$p0rt-0")!=0) ) {
 
-        logmsg( LOG_DEBUG, "RECV:%s %s from %s:%d",
-                dogetdata(cch->recvobject, do_string, NULL, "/namespace"),
-                dogetdata(cch->recvobject, do_string, NULL, "/message"),
+        logmsg( LOG_DEBUG, "RECV: %s from %s:%d",
+                doasjson(cch->recvobject, NULL),
                 ccipaddress(cch), ccpeerport(cch) ) ;
       }
 
@@ -455,92 +671,87 @@ int _cc_processinputmessage(CHROMECAST *cch)
 
   }
 
-
   //
-  // Intercept and cache MEDIA_STATUS data
+  // Intercept and cache variables into the cch->vars object
   //
-
-  char *type = dogetdata(cch->recvobject, do_string, NULL, "/message/type") ;
-
-  //
-  // Intercept and cache MEDIA_STATUS data
   //
 
-  if (type && strcmp(type,"MEDIA_STATUS")==0) {
+  int varindex=0 ;
+  DATAOBJECT *var ;
 
-    char *playerstate = dogetdata(cch->recvobject, do_string, NULL, "/message/status/0/playerState") ;
+  char *msgnamespace = dogetdata(cch->recvobject, do_string, NULL, "/namespace") ;
+  char *msgtype = dogetdata(cch->recvobject, do_string, NULL, "/message/type") ;
 
-    // TODO: only returns status[0] - does not cater for more than 1 media channel
-    // running, and the first one _not_ being a media player
+  if (msgnamespace) {
+    dosetdata(cch->vars, do_string, msgnamespace, strlen(msgnamespace), "/lastMessageNamespace/value") ;
+    dosetdata(cch->vars, do_string, "lastMessageNamespace", 20, "/lastMessageNamespace/variable") ;
+  }
 
-    if (playerstate) {
+  if (msgtype) {
+    dosetdata(cch->vars, do_string, msgtype, strlen(msgtype), "/lastMessageType/value") ;
+    dosetdata(cch->vars, do_string, "lastMessageType", 15, "/lastMessageType/variable") ;
+  }
 
-      if (cch->playerstate) free(cch->playerstate) ;
-      cch->playerstate=malloc(strlen(playerstate)+1) ;
-      if (!cch->playerstate) goto fail ;
-      strcpy(cch->playerstate, playerstate) ;
+  // Walk through each variable node
+
+  if (msgnamespace && msgtype) while ( var = dochild(donoden(cch->vars, varindex)) ) {
+
+    // Get the variable details
+
+    char *variable = dogetdata(var, do_string, NULL, "/variable") ;
+    char *varnamespace = dogetdata(var, do_string, NULL, "/namespace") ;
+    char *vartype = dogetdata(var, do_string, NULL, "/type") ;
+    char *varpath = dogetdata(var, do_string, NULL, "/path") ;
+
+    if (varnamespace && vartype && varpath) {
+
+      // Test namespace and message types match
+
+      if ( strcmp(varnamespace, msgnamespace)==0 &&
+           ( strcmp(vartype, msgtype)==0 || strcmp("*", msgtype)==0 ) ) {
+
+        // Extract the data and convert to a string
+   
+        enum dataobject_type msgparamtype = dogettype(cch->recvobject, varpath) ;
+
+        if (dofindnode(cch->recvobject, varpath)) {
+
+          char *msgvalue ;
+          char buf[32] ;
+          long int i ;
+          double d ;
+          switch (msgparamtype) {
+          case do_string:
+          case do_data:
+            msgvalue = dogetdata(cch->recvobject,do_string,NULL,varpath) ;
+            break ;
+          case do_double:
+          case do_float:
+            dogetreal(cch->recvobject,msgparamtype,&d,varpath) ;
+            snprintf(buf,sizeof(buf),"%f",d) ;
+            msgvalue=buf ;
+            break ;
+          default:
+            dogetsint(cch->recvobject,msgparamtype,&i,varpath) ;
+            snprintf(buf,sizeof(buf),"%ld",i) ;
+            msgvalue=buf ;
+            break ;
+          }
+
+          // Store the string as a variable
+
+          dosetdata(var, do_string, msgvalue, strlen(msgvalue), "/value") ;
+
+        }
+
+      }
+
     }
+
+    varindex++ ;
 
   }
 
-
-  //
-  // Intercept and cache RECEIVER_STATUS data
-  //
-
-  if (type && strcmp(type,"RECEIVER_STATUS")==0) {
-
-    if (cch->receivertransportid) free(cch->receivertransportid) ;
-    if (cch->receiversessionid) free(cch->receiversessionid) ;
-    if (cch->receiverappid) free(cch->receiverappid) ;
-    if (cch->receiverdisplayname) free(cch->receiverdisplayname) ;
-    if (cch->receiverstatustext) free(cch->receiverstatustext) ;
-
-    cch->receivertransportid=NULL ;
-    cch->receiversessionid=NULL ;
-    cch->receiverappid=NULL ;
-    cch->receiverdisplayname=NULL ;
-    cch->receiverstatustext=NULL ;
-
-    // TODO: only returns application[0] - does not cater for more than 1 application
-    // running, and the first one _not_ being a media player
-
-    char *appid = dogetdata(cch->recvobject, do_string, NULL, "/message/status/applications/0/appId") ;
-    char *dname = dogetdata(cch->recvobject, do_string, NULL, "/message/status/applications/0/displayName") ;
-    char *statt = dogetdata(cch->recvobject, do_string, NULL, "/message/status/applications/0/statusText") ;
-    char *sesid = dogetdata(cch->recvobject, do_string, NULL, "/message/status/applications/0/sessionId") ;
-    char *traid = dogetdata(cch->recvobject, do_string, NULL, "/message/status/applications/0/transportId") ;
-
-    if (appid && sesid && traid) {
-
-      cch->receivertransportid=malloc(strlen(traid)+1) ;
-      cch->receiversessionid=malloc(strlen(sesid)+1) ;
-      cch->receiverappid=malloc(strlen(appid)+1) ;
-      if (!cch->receivertransportid || !cch->receiversessionid || !cch->receiverappid) goto fail ;
-      strcpy(cch->receivertransportid, traid) ;
-      strcpy(cch->receiversessionid, sesid) ;
-      strcpy(cch->receiverappid, appid) ;
-
-      if (dname) {
-        cch->receiverdisplayname=malloc(strlen(dname)+1) ; 
-        if (!cch->receiverdisplayname) goto fail ;
-        strcpy(cch->receiverdisplayname, dname) ;
-      }
-
-      if (statt) {
-        cch->receiverstatustext=malloc(strlen(statt)+1) ; 
-        if (!cch->receiverstatustext) goto fail ;
-        strcpy(cch->receiverstatustext, statt) ;
-      }
-
-    } else {
-
-      if (cch->playerstate) free(cch->playerstate) ;
-      cch->playerstate=NULL ;
-
-    }
- 
-  }
 
   //
   // Receive complete, return true
@@ -605,29 +816,6 @@ DATAOBJECT *ccgetsentmessage(CHROMECAST *cch)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// @brief Retrieve media connection details
-// @param(in) cch Handle of chromecast device
-// @param(in) type Record type (0-3)
-// @param(out) Returns pointer to data or "" if not found
-//
-
-char *ccgetmediaconnectiondetails(CHROMECAST *cch, int type)
-{
-  char *reply=NULL ;
-  if (cch) switch (type) {
-  case CC_MCD_APPID: reply = cch->receiverappid ; break ;
-  case CC_MCD_TRANSPORTID: reply = cch->receivertransportid ; break ;
-  case CC_MCD_SESSIONID: reply = cch->receiversessionid ; break ;
-  case CC_MCD_DISPLAYNAME: reply = cch->receiverdisplayname ; break ;
-  case CC_MCD_STATUSTEXT: reply = cch->receiverstatustext ; break ;
-  case CC_MCD_PLAYERSTATE: reply = cch->playerstate ; break ;
-  }
-  if (reply) return reply ;
-  else return "" ;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//
 // @brief Quick-send messages on default sender/receiver
 //
 
@@ -676,12 +864,9 @@ int ccsendreceivermessage(CHROMECAST *cch, char *type)
 // @return True on success
 //
 
-// TODO: Change this to use varargs
-
 int ccsendmessage(CHROMECAST *cch, char *sender, char *receiver, char *namespace, const char *message, ...)
 {
   if (!cch || !netisconnected(cch->ssl)) return 0 ;
-
 
   int len=-1 ;
 
@@ -694,26 +879,53 @@ int ccsendmessage(CHROMECAST *cch, char *sender, char *receiver, char *namespace
 
   va_list args;
 
-  char *messagebuf=NULL ;
+  mem *messagebuf=NULL ;
 
   va_start (args, message);
   size_t messagelen=vsnprintf(messagebuf, 0, message, args) ;
 
-  messagebuf=malloc(messagelen+1) ;
+  // Extra 1024 to allow for string replacements later on
+  messagebuf=mem_malloc(messagelen+1+1024) ;
   if (!messagebuf) return 0 ;
 
   va_start (args, message);
   vsnprintf(messagebuf, messagelen+1, message, args) ;
 
+  // Substitute Variables
+
+  ccexpandvariables(cch->vars, messagebuf) ;
+  ccpurgeremainingvars(messagebuf) ;
+
+  // Update sender, receiver and namespace as required
+
+  char *senders = sender ;
+  char *receivers = receiver ;
+  char *namespaces = namespace ;
+
+  DATAOBJECT *vh ;
+  int i=0 ;
+  char varname[128] ;
+  while (vh=dochild(donoden(cch->vars,i))) {
+     char *variable = dogetdata(vh, do_string, NULL, "/variable") ;
+     char *value = dogetdata(vh, do_string, NULL, "/value") ;
+     if (variable && value) {
+       snprintf(varname, sizeof(varname)-1, "$%s", variable) ;
+       if (strcmp(senders, varname)==0) senders=value ;
+       if (strcmp(receivers, varname)==0) receivers=value ;
+       if (strcmp(namespaces, varname)==0) namespaces=value ;
+     }
+     i++ ;
+  }
+
   // Populate sendobject
 
-  dosetuint(cch->sendobject, do_uint32, 0x00, "/f1") ;                          // Protocol Version
+  dosetuint(cch->sendobject, do_uint32, 0x00, "/f1") ;                            // Protocol Version
 
-  dosetdata(cch->sendobject, do_string, sender, strlen(sender), "/f2") ;        // Source ID
-  dosetdata(cch->sendobject, do_string, receiver, strlen(receiver), "/f3") ;    // Destination ID
-  dosetdata(cch->sendobject, do_string, namespace, strlen(namespace), "/f4") ;  // Namespace
-  dosetuint(cch->sendobject, do_uint32, 0, "/f5") ;                             // Payload Type (0 = string)
-  dosetdata(cch->sendobject, do_string, messagebuf, messagelen, "/f6") ;        // Payload Data (JSON string)
+  dosetdata(cch->sendobject, do_string, senders, strlen(senders), "/f2") ;        // Source ID
+  dosetdata(cch->sendobject, do_string, receivers, strlen(receivers), "/f3") ;    // Destination ID
+  dosetdata(cch->sendobject, do_string, namespaces, strlen(namespaces), "/f4") ;  // Namespace
+  dosetuint(cch->sendobject, do_uint32, 0, "/f5") ;                               // Payload Type (0 = string)
+  dosetdata(cch->sendobject, do_string, messagebuf, strlen(messagebuf), "/f6") ;  // Payload Data (JSON string)
 
   // Convert to protobuf and send
 
@@ -730,14 +942,16 @@ int ccsendmessage(CHROMECAST *cch, char *sender, char *receiver, char *namespace
   dosettype(cch->sendobject, do_string, "/f3") ; dorenamenode(cch->sendobject, "/f3", "receiver") ;
   dosettype(cch->sendobject, do_string, "/f4") ; dorenamenode(cch->sendobject, "/f4", "namespace") ;
   dosettype(cch->sendobject, do_uint32, "/f5") ; dorenamenode(cch->sendobject, "/f5", "datatype") ;
-  doexpandfromjson(cch->sendobject, "/f6") ; dorenamenode(cch->sendobject, "/f6", "message") ;
+  dorenamenode(cch->sendobject, "/f6", "message") ;
 
-      if ( getenv("PINGLOGENABLE") || (sender && strcmp(sender, "Tr@n$p0rt-0")!=0) ) {
-    logmsg( LOG_DEBUG, "SEND%s:%s %s to %s:%d", (r1==4 && r2==len)?"":"FAILED", 
-            namespace, messagebuf, ccipaddress(cch), ccpeerport(cch)) ;
+  if ( getenv("PINGLOGENABLE") || (sender && strcmp(sender, "Tr@n$p0rt-0")!=0) ) {
+    logmsg( LOG_DEBUG, "SEND%s: %s to %s:%d", (r1==4 && r2==len)?"":"FAILED", 
+            doasjson(cch->sendobject, NULL), ccipaddress(cch), ccpeerport(cch)) ;
   }
 
-  free(messagebuf) ;
+  doexpandfromjson(cch->sendobject, "/message") ; 
+
+  mem_free(messagebuf) ;
 
   return (r1==4 && r2==len) ;
 

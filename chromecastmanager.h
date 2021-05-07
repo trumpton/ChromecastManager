@@ -10,6 +10,15 @@
 #include "chromecast_interface.h"
 
 
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+//
+// chromecastmanager.c
+//
+//
+
+char *getscriptfolder() ;
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -85,6 +94,13 @@ int chromecast_device_request_process_devicelist(HTTPD *httpsh, CHROMECAST **ccl
 
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
+// @brief Process Server Info
+// Returns true
+
+int chromecast_device_request_process_serverinfo(HTTPD *httpsh) ;
+
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
 // @brief Process Chromecast JSON Query
 // Returns true
 
@@ -93,20 +109,21 @@ int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch) 
 
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
-// @brief Process Chromecast Command
-// Returns true
+// @brief Load Macro
+// @param(in) httpdsh handle of HTTP session which initiated request
+// @param(in) cch Chromecast device handle
+// @return True on success
+//
 
-int chromecast_device_request_process_command(HTTPD *httpsh, CHROMECAST *cch) ;
+int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro) ;
 
 
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
-// @brief Completes Chromecast Command Processing
-// Returns true on complete
+// @brief Process Macro
+// @return true whilst processing and false on completion / error
 
-int chromecast_device_request_process_command_sendload(HTTPD *httpsh, CHROMECAST *cch) ;
-int chromecast_device_request_process_command_loadcomplete(HTTPD *httpsh, CHROMECAST *cch) ;
-int chromecast_device_request_process_command_loadfailed(HTTPD *httpsh, CHROMECAST *cch) ;
+int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch) ;
 
 
 

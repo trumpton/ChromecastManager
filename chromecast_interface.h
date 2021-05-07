@@ -1,7 +1,50 @@
 //
-// chromecast_interface.c
+// chromecast_interface.h
 //
 //
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+////
+////
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+////
+//// Variable Management
+////
+//// Each Chromecast device has its own vars dataobject, which is used
+//// to store variables along with their associated namespace and path
+////
+//// The recv operation scans messages received, and updates variables
+//// when encountered. e.g. the following receipt:
+////
+//// {
+////     namespace: "urn:x-cast:com.google.cast.receiver",
+////     message: {"type":"MEDIA_STATUS",
+////               "status":{
+////                   "applications":[
+////                      {"appId":"CC1AD845" .....
+////
+//// Can be watched with: 
+////
+////    ccaddwatch( cch, "myAppId", 
+////                "urn:x-cast:com.google.cast.receiver", 
+////                "MEDIA_STATUS",
+////                "/message/status/applications/0/appId") ;
+////
+//// And accessed with:
+////
+////   ccgetwatch(cch, "myAppId") ;
+////
+////
+//// Any send operations will then substitute the $myAppId variable with
+//// the actual value. Note that all watch values are stored as strings.
+////
+
+
 
 #ifndef _CHROMECASTINTERFACE_DEFINED_
 #define _CHROMECASTINTERFACE_DEFINED_
@@ -9,27 +52,36 @@
 #include <sys/select.h>
 #include "libdataobject/dataobject.h"
 #include "libtools/net.h"
+#include "libtools/mem.h"
+
 
 typedef struct {
+
   NET *ssl ;
+
   int requestid ;
+
   enum { REC_START=0, REC_SIZE, REC_BODY, REC_DONE, REC_PARSED } recvstate ;
+
   int recvsize ;
   int recvlen ;
   char *recvbuf ;
+
+  DATAOBJECT *vars ;
+  DATAOBJECT *httpsessionvars ;
+
   DATAOBJECT *recvobject ;
-// TODO: add unsolicitedrecvobject and function to obtain it
   DATAOBJECT *sendobject ;
+
+  DATAOBJECT *macro ;
+  int macroindex ;
+
   time_t lastreceipt ;
   int pingssent ;
-  int flags ; // flags field for user to set/get as sees fit
-  int state ; // received message state
-  char *receiverappid ;
-  char *receiverdisplayname ;
-  char *receivertransportid ;
-  char *receiversessionid ;
-  char *receiverstatustext ;
-  char *playerstate ;
+
+  // flags field for user to set/get as sees fit
+  int flags ; 
+
 } CHROMECAST ;
 
 //////////////////////////////////////////////////////////////////////////
@@ -180,6 +232,77 @@ int ccpeerport(CHROMECAST *cch) ;
 int ccrecv(CHROMECAST *cch) ;
 
 
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Add variable to watch list
+// @param(in) cch Handle of chromecast device
+// @param(in) variable Name of variable
+// @param(in) namespace Namespace to use in search
+// @param(in) type Message type ("*" for any)
+// @param(in) path Path to variable in namespace to add to watch
+// @return True if watch could be added
+//
+
+int ccaddwatch(CHROMECAST *cch, char *variable, char *namespace, char *type, char *path) ;
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Set variable value (string, int or float)
+// @param(in) cch Handle of chromecast device
+// @param(in) variable Name of variable
+// @param(in) value Value to be stored
+// @return True if value could be added
+
+int ccsetwatch(CHROMECAST *cch, char *variable, char *value) ;
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Return the value for the named variable
+// @param(in) cch Handle of chromecast device
+// @param(int) variable Variable name
+// @return Pointer to string, or NULL
+//
+
+char *ccgetwatch(CHROMECAST *cch, char *variable) ;
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Return the variable details at the given index
+// @param(in) cch Handle of chromecast device
+// @param(in) index Index of variable
+// @return Variable details or NULL if not found
+//
+
+char * ccgetwatchvarnameat(CHROMECAST *cch, int index) ;
+char * ccgetwatchat(CHROMECAST *cch, int index) ;
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Expand the variables in the given buffer
+// @param(in) vars Pointer to a variables structure
+// @param(in) buf Pointer to string buffer
+// @return True on success
+//
+
+int ccexpandvariables(DATAOBJECT *vars, mem *buf) ;
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Purge any variables which have not been expanded
+// @param(in) buf Pointer to string buffer
+// @return True on success
+//
+
+int ccpurgeremainingvars(mem *buf) ;
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 // @brief Process input
@@ -189,22 +312,7 @@ int ccrecv(CHROMECAST *cch) ;
 
 DATAOBJECT * ccgetmessage(CHROMECAST *cch) ;
 
-//////////////////////////////////////////////////////////////////////////
-//
-// @brief Retrieve media connection details
-// @param(in) cch Handle of chromecast device
-// @param(in) type Record type CC_MCD_*
-// @param(out) Returns pointer to data or "" if not found
-//
 
-char *ccgetmediaconnectiondetails(CHROMECAST *cch, int type) ;
-
-#define CC_MCD_APPID 0
-#define CC_MCD_DISPLAYNAME 1
-#define CC_MCD_STATUSTEXT 2
-#define CC_MCD_TRANSPORTID 3
-#define CC_MCD_SESSIONID 4
-#define CC_MCD_PLAYERSTATE 5
 
 //////////////////////////////////////////////////////////////////////////
 //

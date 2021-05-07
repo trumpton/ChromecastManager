@@ -28,13 +28,14 @@ int chromecast_device_connection_update(CHROMECAST **cclist, int maxcc)
 
     char *ipaddress = chromecast_mdns_at(i)->ipaddress ;
     int port = chromecast_mdns_at(i)->port ;
+    char *friendlyname = chromecast_mdns_at(i)->friendlyname ;
 
     if (cclist[i] && !ipaddress) {
 
       // MDNS reports connection no longer present, so force closure
 
-      logmsg( LOG_NOTICE, "Forcing disconnection of chromecast at %s:%d",
-              ipaddress, port) ;
+      logmsg( LOG_NOTICE, "Forcing disconnection of %s chromecast at %s:%d",
+              friendlyname?friendlyname:"unknown", ipaddress, port) ;
 
       ccdisconnect(cclist[i]) ;
       ccdelete(cclist[i]) ;
@@ -50,8 +51,9 @@ int chromecast_device_connection_update(CHROMECAST **cclist, int maxcc)
           ccdelete(cclist[i]) ;
           cclist[i]=NULL ;
         } else {
-          logmsg( LOG_NOTICE, "Establishing connection to chromecast at %s:%d", 
-                  ipaddress, port ) ;
+          logmsg( LOG_NOTICE, "Establishing connection to %s chromecast at %s:%d", 
+                  friendlyname?friendlyname:"unknown", ipaddress, port ) ;
+
           ccsendconnectionmessage(cclist[i], "CONNECT") ;
           ccsendreceivermessage(cclist[i],"GET_STATUS") ;
         }

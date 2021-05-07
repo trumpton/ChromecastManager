@@ -10,47 +10,6 @@
 // It also provides a http server to allow chromecast devices
 // to be controlled and queried. (libtools/httpd.h)
 //
-// 1. Get list of devices on network
-//
-//        type: GET
-//        uri: /devicelist
-//
-//
-// 2. Access test page
-//
-//        type: GET
-//        uri: /test
-//
-//
-// 3. Perform 'macro' command
-//
-//        type: GET
-//        uri: /command
-//        device=device_name|address
-//        port=port_number (required if device is an IP address)
-//        url=url_for_play
-//        sleep=sleep_duration_for_play (in seconds)
-//        volume=volume_level (0.0 - 1.0)
-//
-// 4. Low level json access
-//
-//        type: POST
-//        uri: /jsonquery
-//
-//        used to pass json data to a specific namespace
-//        and capture the response.  Messages are extracted
-//        from the JSON.
-//
-//        The request and responses are formatted as follows:
-//
-//        { "namespace": "namespace", "sender": "sender-0", "receiver: "receiver-0", 
-//          "status" : "response-status", "message" : { <json request/response> } }
-//
-//        Responses include the status as follows:
-//
-//        OK      - Message processed - message contains response
-//        TIMEOUT - Message sent to device, but no response received
-//
 // Diagnostics:
 //
 //  Set SSLKEYLOGFILE environment variable before launching, and SSL keys required
@@ -60,7 +19,13 @@
 //  (https://casttool.appspot.com/cactool/) to be intercepted - i.e. set variable
 //  before launching the chrome web browser.
 //
-
+//  Set NETDUMPENABLE to enable the raw (protobuf) network communications to/from the 
+//  chromecast devices to be sent to stderr.  This is the same information that can
+//  be captured with wireshark.
+//
+//  Set PINGLOGENABLE to enable the logging of PING and PONG messages.  Normally these
+//  messages are suppressed from the logs as there tend to be an awful lot of them.
+//
 
 #include <string.h>
 #include <stdarg.h>
@@ -120,40 +85,67 @@ void setfdsetdbgstr(char *str, int reset, char *template, ...) ;
 // Main function
 //
 
+char *_scriptfolder ;
+char *getscriptfolder() { return _scriptfolder ; }
+
+#define MAXHT 2
+
 int main(int argc, char *argv[])
 {
   int n ;
-  int queriedindex=-1 ;               // Index of last item queried
-  HTTPD *httpsh=NULL ;                // HTTPD session
+
+  HTTPD *httpsh[MAXHT];               // HTTPD session
+  int hqi[MAXHT] ;                    // Associated chromecast device # with http session
+  int queriedindex=-1 ;               // Queried Index of last item queried
+
   CHROMECAST **cch ;                  // Array of chromecast devices to use
   int maxcc=chromecast_mdns_size() ;  // Max number of chromecast devices
+
   time_t servicetime=0, pingchecktime=0 ;
   int httpdport = 9000 ;
   char *loglevel=NULL ;
 
-  if (argc==2) {
+  for (int i=0; i<MAXHT; i++) {
+    httpsh[i]=NULL ;
+    hqi[i]=-1;
+  }
 
-    if (isdigit(argv[1][0])) httpdport=atoi(argv[1]) ;
-    else loglevel=argv[1] ;
+  if (argc>=2) {
 
-  } else if (argc==3) {
+    _scriptfolder = argv[1] ;
+
+  } else if (argc>=2) {
 
     if (isdigit(argv[2][0])) httpdport=atoi(argv[2]) ;
     else loglevel=argv[2] ;
 
-  } else if (argc>3) {
+  } else if (argc==3) {
 
-    fprintf(stderr, "chromecastmanager [serverport] [loglevel]\n") ;
+    if (isdigit(argv[3][0])) httpdport=atoi(argv[3]) ;
+    else loglevel=argv[3] ;
+
+  } else if (argc>4 || argc<2) {
+
+    fprintf(stderr, "chromecastmanager scriptfolder [serverport] [loglevel]\n") ;
     goto fail ;
 
   }
 
+// TODO FIX ME
+loglevel="internal" ;
 
   logopen("chromecast") ;
   logsetlevel(loglevel?loglevel:"info") ;
   logmsg(LOG_NOTICE, "server started") ;
 
-  if (getenv("SSLKEYLOGFILE")) logmsg(LOG_NOTICE, "Environment variable SSLKEYLOGFILE found - logging tls keys") ;
+  if (getenv("SSLKEYLOGFILE")) 
+    logmsg(LOG_NOTICE, "Environment variable SSLKEYLOGFILE found - logging tls keys") ;
+
+  if (getenv("NETDUMPENABLE")) 
+    logmsg(LOG_NOTICE, "Environment variable NETDUMPENABLE found - dumping raw protobuf data to stderr") ;
+
+  if (getenv("PINGLOGENABLE")) 
+    logmsg(LOG_NOTICE, "Environment variable PINGLOGENABLE found - logging pings") ;
 
   /////////////////////////////////////////////////////
   /////////////////////////////////////////////////////
@@ -241,9 +233,11 @@ int main(int argc, char *argv[])
 
     // HTTPD session activity
 
-    if (httpsh && hfd(httpsh)>=0) {
-      FD_SET(hfd(httpsh), &rfds) ;
-      if (hfd(httpsh) > lp) lp = hfd(httpsh);
+    for (int i=0; i<MAXHT; i++) {
+      if (httpsh[i] && hfd(httpsh[i])>=0) {
+        FD_SET(hfd(httpsh[i]), &rfds) ;
+        if (hfd(httpsh[i]) > lp) lp = hfd(httpsh[i]);
+      }
     }
 
     // Shutdown request activity
@@ -257,7 +251,7 @@ int main(int argc, char *argv[])
     /////////////////////////////////////////////////////
     // Wait for activity
 
-    if (httpsh && httpdfd>0) {
+    if ( httpsh[0] || httpsh[1] ) {
 
       // Faster timeout if HTTP request in progress
       tv.tv_sec = 0 ;
@@ -272,7 +266,7 @@ int main(int argc, char *argv[])
 
 #ifdef DEBUG
     char fdsetdbg[13] ;
-    setfdsetdbgstr(fdsetdbg, 1, "........mhsc", 
+    setfdsetdbgstr(fdsetdbg, 1, "........mhscc", 
       cch[0]&&ccrdfdisset(cch[0],&rfds,&wfds),
       cch[1]&&ccrdfdisset(cch[1],&rfds,&wfds),
       cch[2]&&ccrdfdisset(cch[2],&rfds,&wfds),
@@ -284,13 +278,14 @@ int main(int argc, char *argv[])
       FD_ISSET(mcfd,&rfds),
       FD_ISSET(httpdfd,&rfds),
       FD_ISSET(shutdownpipefd[1],&rfds),
-      FD_ISSET(hfd(httpsh),&rfds)) ;
+      FD_ISSET(hfd(httpsh[0]),&rfds),
+      FD_ISSET(hfd(httpsh[1]),&rfds)) ;
 #endif
 
     n = select(lp + 1, &rfds, &wfds, NULL, &tv);
 
 #ifdef SELECTDEBUG
-    setfdsetdbgstr(fdsetdbg, 0, "01234567MHSC", 
+    setfdsetdbgstr(fdsetdbg, 0, "01234567MHSCC", 
       cch[0]&&ccrdfdisset(cch[0],&rfds,&wfds),
       cch[1]&&ccrdfdisset(cch[1],&rfds,&wfds),
       cch[2]&&ccrdfdisset(cch[2],&rfds,&wfds),
@@ -302,75 +297,95 @@ int main(int argc, char *argv[])
       FD_ISSET(mcfd,&rfds),
       FD_ISSET(httpdfd,&rfds),
       FD_ISSET(shutdownpipefd[1],&rfds),
-      FD_ISSET(hfd(httpsh),&rfds)) ;
+      FD_ISSET(hfd(httpsh[0]),&rfds),
+      FD_ISSET(hfd(httpsh[1]),&rfds)) ;
     logmsg(LOG_INT, "FD_SET: %s", fdsetdbg) ;
 #endif
 
     /////////////////////////////////////////////////////
     // Process new httpd server connection request
 
-    // Timeout old connection
-    if (httpsh && httpdfd>0 && hconnectiontime(httpsh)>5) {
-      hclose(httpsh) ;
-      httpsh=NULL ;
-    }
+    if (!exit_requested && httpdfd>0 && FD_ISSET(httpdfd, &rfds)) {
 
+      // Find a free handle
 
-    if (!exit_requested && !httpsh && httpdfd>0 && FD_ISSET(httpdfd, &rfds)) {
+      int thishc = -1 ;
+      for (int hc=0; hc<MAXHT && thishc<0; hc++) {
+        if (!httpsh[hc]) thishc=hc ;
+      }
 
-      if (!httpsh) {
-
-        httpsh = haccept(httpdfd) ;
+      if (thishc>=0) {
+        httpsh[thishc] = haccept(httpdfd) ;
         logmsg( LOG_DEBUG, "Connection established from %s:%d",
-                hpeeripaddress(httpsh), hpeerport(httpsh) ) ;
-
+              hpeeripaddress(httpsh[thishc]), hpeerport(httpsh[thishc]) ) ;
       }
 
     }
-
 
     /////////////////////////////////////////////////////
     // Process http session requests
 
 
-    if (!exit_requested && httpsh && FD_ISSET(hfd(httpsh), &rfds)) {
+    if (!exit_requested) {
 
-      int r = hrecv(httpsh) ;
 
-      switch ( r ) {
+      for (int hc=0; hc<MAXHT; hc++) {
 
-        case 0:
+        // Timeout connections
 
-          // Wait for more data
-          break ;
+        int timeout = hqi[hc]>=0 ? 5 : 2 ;
 
-        case -1:
+        if (httpsh[hc] && hfd(httpsh[hc])>0 && hconnectiontime(httpsh[hc]) > timeout ) {
+          hclose(httpsh[hc]) ;
+          httpsh[hc]=NULL ;
+          hqi[hc]=-1 ;
+        }
 
-          // Connection closed
 
-          logmsg(LOG_DEBUG, "Connection closed (%s:%d)",
-              hpeeripaddress(httpsh), hpeerport(httpsh)) ;
-          hclose(httpsh) ;
-          httpsh=NULL ;
-          break ;
+        // Check for activity
 
-        case 200:
+        if (httpsh[hc] && FD_ISSET(hfd(httpsh[hc]), &rfds)) {
 
-          // Dispatch completed request
+          int r = hrecv(httpsh[hc]) ;
 
-          queriedindex=chromecast_device_request_process(httpsh, cch, maxcc) ;
-          logmsg(LOG_INFO, "Processing HTTP query from %s:%d",
-              hpeeripaddress(httpsh), hpeerport(httpsh)) ;
-          break ;
+          switch ( r ) {
 
-        default:
+            case 0:
 
-          // Send error response message
+              // Wait for more data
+              break ;
 
-          hsend(httpsh, r, NULL, NULL) ;
-          break ;
+            case -1:
 
-      } ;
+              // Connection closed
+
+              logmsg(LOG_DEBUG, "Connection closed (%s:%d)",
+                  hpeeripaddress(httpsh[hc]), hpeerport(httpsh[hc])) ;
+              hclose(httpsh[hc]) ;
+              httpsh[hc]=NULL ;
+              hqi[hc]=-1 ;
+              break ;
+
+            case 200:
+
+              // Dispatch completed request
+
+              hqi[hc] = chromecast_device_request_process(httpsh[hc], cch, maxcc) ;
+              break ;
+
+            default:
+
+              // Send error response message
+
+              hsend(httpsh[hc], r, NULL, NULL) ;
+              break ;
+
+          } ;
+
+        }
+
+      }
+
     }
 
     /////////////////////////////////////////////////////
@@ -397,8 +412,14 @@ int main(int argc, char *argv[])
 
         default:
 
-          // Process request / response
-          chromecast_device_response_process(cch[i], httpsh) ;
+          // Process request / response 
+
+          queriedindex=-1 ;
+          for (int hc=0; hc<MAXHT && queriedindex<0; hc++) {
+            if (hqi[hc] == i) queriedindex=hc ;
+          }
+
+          chromecast_device_response_process(cch[i], queriedindex>=0 ? httpsh[queriedindex] : NULL) ;
 
           break ;
 
@@ -411,7 +432,7 @@ int main(int argc, char *argv[])
     /////////////////////////////////////////////////////
     // Timeout
 
-    if (!exit_requested && time(NULL) > (servicetime+60) ) {
+    if (!exit_requested && time(NULL) > (servicetime+240) ) {
 
       servicetime = time(NULL) ;
 
@@ -446,7 +467,7 @@ int main(int argc, char *argv[])
 
         } else if ( cch[i] && ( ccidletime(cch[i]) > 480 ) ) {
 
-          logmsg( LOG_INFO, "Disconnecting non-responsive chromecast device at %s:%d",
+          logmsg( LOG_NOTICE, "Disconnecting non-responsive chromecast device at %s:%d",
                   ccipaddress(cch[i]), ccpeerport(cch[i])) ;
           ccdelete(cch[i]) ;
           cch[i]=NULL ;
@@ -486,6 +507,8 @@ int main(int argc, char *argv[])
 
 fail:
 
+  if (httpsh[0]) hclose(httpsh[0]) ;
+  if (httpsh[1]) hclose(httpsh[1]) ;
   httpd_shutdown() ;
 
   if (cch) {

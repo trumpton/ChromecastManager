@@ -72,7 +72,6 @@ int chromecast_device_response_process(CHROMECAST *cch, HTTPD *httpsh)
   dogetuint(dosh, do_int64, &sentrequestid, "/message/requestId") ;
 
 
-
   ///////////////////////////////////
   // Respond to PING
 
@@ -87,7 +86,7 @@ int chromecast_device_response_process(CHROMECAST *cch, HTTPD *httpsh)
   ///////////////////////////////////
   // Ignore PONG responses
 
-  if ( namespace && strcmp(namespace, "urn:x-cast:com.google.cast.tp.heartbeat")==0 && 
+  else if ( namespace && strcmp(namespace, "urn:x-cast:com.google.cast.tp.heartbeat")==0 && 
        type && strcasecmp(type, "PONG")==0 ) {
 
     // Response to our ping
@@ -98,59 +97,35 @@ int chromecast_device_response_process(CHROMECAST *cch, HTTPD *httpsh)
 
   }
 
-
   ///////////////////////////////////
-  // Process Macro 'GET' responses
+  // Process Macro 'POST' responses
 
-  if (namespace && type && (ccgetflag(cch)&CC_FLAG_PROCESSING) ) {
+  else if ( cch->macro ) {
 
-    if (ccgetflag(cch)&CC_FLAG_LOADSENT) {
+   logmsg( LOG_DEBUG, "Received %s:%s - processing macro step %d ...", 
+           namespace, type, cch->macroindex) ;
 
-      // Playing station - Load performed
-      // so check for buffering/playing or error
-
-      if ( strcmp(namespace, CC_NAMESPACE_MEDIA)==0 &&
-           strcasecmp(type, "LOAD_FAILED")==0 ) {
-
-        chromecast_device_request_process_command_loadfailed(httpsh, cch) ; 
-
-      } else if ( strcmp(namespace, CC_NAMESPACE_MEDIA)==0 &&
-                  strcasecmp(type, "MEDIA_STATUS")==0 ) {
-
-        chromecast_device_request_process_command_loadcomplete(httpsh, cch) ; 
-
-      }
-
-   } else {
-
-      // Playing station - Launch has been sent
-      // so start the load operation
-
-      if ( strcmp(namespace, CC_NAMESPACE_RECEIVER)==0 &&
-           strcasecmp(type, "RECEIVER_STATUS")==0 ) {
-
-           chromecast_device_request_process_command_sendload(httpsh, cch) ; 
-
-      }
-
-    }
+    return chromecast_macro_process(httpsh, cch) ;
 
   }
 
   ///////////////////////////////////
   // Provide response to query
 
-  else if ( namespace && sentnamespace && strcmp(namespace, sentnamespace)==0 &&
-            sender && sentreceiver && strcmp(sender, sentreceiver)==0 &&
-            sentsender && receiver && ( strcmp(receiver, sentsender)==0 || strcmp(receiver, "*")==0) &&
-            requestid == sentrequestid /* && requestwasfromhttpsession */ ) {
+  else if ( ccgetflag(cch)&CC_FLAG_JSONQUERY &&
 
-// TODO: this is getting actioned even when the 
-// messages are automatically generated, even if
-// no custom commands have been sent.
-// Need a better way of working out if a message
-// is pending - probably finding a different way
-// of tagging a request as internal or external
+            sender && sentreceiver && strcmp(sender, sentreceiver)==0 &&
+
+            sentsender && receiver && ( strcmp(receiver, sentsender)==0 || strcmp(receiver, "*")==0) &&
+                ( 
+                    strcmp(namespace, CC_NAMESPACE_CONNECTION)==0  ||
+                   ( 
+                       namespace && sentnamespace && 
+                       strcmp(namespace, sentnamespace)==0 &&
+                      (requestid == sentrequestid || requestid == 0 )
+                   )
+               ) 
+           ) {
 
     // Response to our request 
 
@@ -163,6 +138,8 @@ int chromecast_device_response_process(CHROMECAST *cch, HTTPD *httpsh)
       char *json = doasjson(doh, NULL) ;
       hsend(httpsh, 200, "application/json", json) ;
     }
+
+    ccclearflag(cch, CC_FLAG_JSONQUERY) ;
 
     return 1 ;
 
