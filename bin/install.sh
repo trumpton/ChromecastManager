@@ -63,10 +63,10 @@ sudo systemctl stop $APP > /dev/null 2>&1
 echo "Transferring files ... "
 echo "   /usr/bin/$APP"
 sudo cp "$DEST/src/$APP" "/usr/bin/$APP"
-sudo mkdir -p "/etc/$APP/scripts"
+sudo mkdir -p "/etc/$APP"
 
 echo "   /etc/$APP/"
-sudo cp "$DEST/conf/*" "/etc/$APP"
+sudo cp $DEST/conf/* "/etc/$APP"
 
 echo "   /lib/systemd/system/$APP.service"
 sudo cp "$DEST/system/$APP.service" "/lib/systemd/system/$APP.service"
