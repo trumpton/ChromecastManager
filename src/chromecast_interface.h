@@ -50,6 +50,7 @@
 #define _CHROMECASTINTERFACE_DEFINED_
 
 #include <sys/select.h>
+#include <time.h>
 #include "libdataobject/dataobject.h"
 #include "libtools/net.h"
 #include "libtools/mem.h"
@@ -75,6 +76,7 @@ typedef struct {
 
   DATAOBJECT *macro ;
   int macroindex ;
+  time_t macrotimer ;
 
   time_t lastreceipt ;
   int pingssent ;

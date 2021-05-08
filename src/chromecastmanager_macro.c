@@ -189,6 +189,7 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
     // First macro step is 1 (at index 0)
     cch->macroindex=1 ;
+    cch->macrotimer = (time_t)0 ;
 
     return chromecast_macro_process(httpsh, cch) ;
 
@@ -289,6 +290,52 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
 
       num++ ;
+
+    } else if (op && strcmp(op, "pause")==0) {
+
+      // Pause for specified interval
+
+      unsigned long int tih = 0, tim = 0, tis = 0 ;
+ 
+      char *tss = dogetdata(step, do_string, NULL, "/seconds") ;
+      char *tsm = dogetdata(step, do_string, NULL, "/minutes") ;
+      char *tsh = dogetdata(step, do_string, NULL, "/hours") ;
+      char *comment=dogetdata(step, do_string, NULL, "/comment") ;
+
+      if (tss) { tis = atoi(tss) ; } 
+      else { dogetuint(step, do_int32, &tis, "/seconds") ; }
+
+      if (tsm) { tim = atoi(tsm) ; } 
+      else { dogetuint(step, do_int32, &tim, "/minutes") ; }
+
+      if (tsh) { tih = atoi(tsh) ; } 
+      else { dogetuint(step, do_int32, &tih, "/hours") ; }
+
+      tis = tis + tim*60 + tih*3600 ;
+
+      if (tis<=0) {
+
+        logmsg( LOG_DEBUG, "Macro @%d%s%s%s skipping empty pause", 
+                num+1, comment?" (":"", comment?comment:"", comment?")":"") ;
+        num++ ;
+
+      } else {
+
+        if (cch->macrotimer == (time_t)0 ) {
+
+          logmsg( LOG_DEBUG, "Macro @%d%s%s%s starting pause for %ld seconds", 
+                  num+1, comment?" (":"", comment?comment:"", comment?")":"", tis) ;
+          cch->macrotimer = time(NULL) ;
+
+        } else if ( time(NULL) >= (cch->macrotimer + tis) ) {
+
+          logmsg( LOG_DEBUG, "Macro @%d%s%s%s pause complete", 
+                  num+1, comment?" (":"", comment?comment:"", comment?")":"") ;
+          num++ ;
+
+        }
+
+      }
 
 
     } else if (op && strcmp(op, "send")==0) {
