@@ -131,9 +131,6 @@ int main(int argc, char *argv[])
 
   }
 
-// TODO FIX ME
-loglevel="internal" ;
-
   logopen("chromecast") ;
   logsetlevel(loglevel?loglevel:"info") ;
   logmsg(LOG_NOTICE, "server started") ;
