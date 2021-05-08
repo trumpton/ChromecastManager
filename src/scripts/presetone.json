@@ -2,18 +2,6 @@
   "script": [
 
      {
-         "comment": "Check supplied parameters",
-         "op": "test",
-         "conditions": [
-             {
-                 "v": "$(url)",
-                 "goto": "next",
-                 "else": "badparams"
-             }
-         ]
-     },
-
-     {
          "comment": "Ensure required variables are watched",
          "op": "addwatch",
          "variable": "sessionId",
@@ -101,11 +89,11 @@
              "autoplay": true,
              "duration": 10,
              "media": {
-                 "contentId": "$(url)",
+                 "contentId": "http://live7.avf.ch:8000/ipmusicslow320",
                  "streamType": "LIVE",
                  "contentType": "audio/mpeg",
                  "metadata": {
-                     "title": "$(title) "
+                     "title": "IP Music Slow"
                  }
              }
          }

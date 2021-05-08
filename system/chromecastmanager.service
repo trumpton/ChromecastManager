@@ -1,0 +1,16 @@
+[Unit]
+Description=Chromecast Manager
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/chromecastmanager /etc/chromecastmanager
+ExecReload=/bin/kill -HUP $MAINPID
+User=chromecastmanager
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+Alias=chromecastmanager.service
+WantedBy=default.target
+

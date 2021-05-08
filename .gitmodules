@@ -1,9 +1,9 @@
 [submodule "libtools"]
-	path = libtools
+	path = src/libtools
 	url = https://github.com/trumpton/libtools.git
 [submodule "libdataobject"]
-	path = libdataobject
+	path = src/libdataobject
 	url = https://github.com/trumpton/libdataobject.git
 [submodule "libnet"]
-	path = libnet
+	path = src/libnet
 	url = https://github.com/trumpton/libnet.git
