@@ -48,7 +48,37 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
   int len ;
   int index=-1 ;
 
-  if (device) index = chromecast_finddevice(device, maxcc) ;
+  if (device && *device!='\0') {
+
+    // Device was passed as a uri parameter
+
+    index = chromecast_finddevice(device, maxcc) ;
+
+  }
+
+  if (index<0) {
+
+    // Check JSON body for device name
+
+    DATAOBJECT *body = donew() ;
+    if (!body) return -1 ;
+    char *bodytxt = hgetbody(httpsh) ;
+
+    if (bodytxt) {
+      dofromjson(body, bodytxt) ;
+      char *dodevice = dogetdata(body, do_string, NULL, "/device") ;
+      if (dodevice) {
+        index = chromecast_finddevice(dodevice, maxcc) ;
+      }
+    }
+    dodelete(body) ;
+ 
+  }
+
+  // Log friendlyname string
+
+  char *friendlyname = (index<0) ? NULL : chromecast_mdns_at(index)->friendlyname ;
+  logmsg(LOG_DEBUG, "Friendly name for request: %s\n", friendlyname ? friendlyname : "unknown device") ;
 
   // Search for file in filesystem
 
