@@ -114,17 +114,22 @@ int main(int argc, char *argv[])
 
     _scriptfolder = argv[1] ;
 
-  } else if (argc>=2) {
+  }
+
+  if (argc>=3) {
 
     if (isdigit(argv[2][0])) httpdport=atoi(argv[2]) ;
     else loglevel=argv[2] ;
+  }
 
-  } else if (argc==3) {
+  if (argc==4) {
 
     if (isdigit(argv[3][0])) httpdport=atoi(argv[3]) ;
     else loglevel=argv[3] ;
 
-  } else if (argc>4 || argc<2) {
+  }
+
+  if (argc>4 || argc<2) {
 
     fprintf(stderr, "chromecastmanager scriptfolder [serverport] [loglevel]\n") ;
     goto fail ;
