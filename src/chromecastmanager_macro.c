@@ -32,6 +32,8 @@ int _expand_entry_variables(DATAOBJECT *entry, CHROMECAST *cch) ;
 
 int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 {
+  mem *evmacro=NULL ;
+
   if (!cch || !macro) return 0 ;
 
   if (cch->macro) free(cch->macro) ;
@@ -62,7 +64,20 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
   }
 
-  else if (!dofromjson(cch->macro, macro) ) {
+
+  // Copy macro and expand unquoted variables only
+
+  evmacro = mem_malloc(strlen(macro)+1024) ;
+  if (!evmacro) return 0 ;
+
+  strcpy(evmacro, macro) ;
+
+  ccexpandvariables(cch->vars, evmacro, 1, 1) ;
+  ccexpandvariables(cch->httpsessionvars, evmacro, 1, 0) ;
+
+  // Then parse macro
+
+  if (!dofromjson(cch->macro, evmacro) ) {
 
     // Errors expanding macro, so report
 
@@ -194,6 +209,8 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
     cch->macrotimer = (time_t)0 ;
     cch->macroforce = 0 ;
 
+    mem_free(evmacro) ;
+
     return chromecast_macro_process(httpsh, cch) ;
 
   }
@@ -203,6 +220,7 @@ fail:
   if (cch->macro) dodelete(cch->macro) ;
   cch->macro = NULL ;
   if (cch->httpsessionvars) dodelete(cch->httpsessionvars) ;
+  if (evmacro) mem_free(evmacro) ;
   cch->httpsessionvars = NULL ;
   return 0 ;
 
@@ -537,7 +555,9 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
     }
 
     unsigned long int endflag=0 ;
-    dogetuint(step, do_uint32, &endflag, "/end") ;
+    dogetuint(step, do_bool, &endflag, "/end") ;
+dodump(step,"ENDSEARCH") ;
+printf("endflag=%ld\n", endflag) ;
     if (endflag) {
       num=-1 ;
     }
@@ -586,9 +606,8 @@ int _expand_entry_variables(DATAOBJECT *entry, CHROMECAST *cch)
 
   // Expand variables from watches and httpd queries
 
-  ccexpandvariables(cch->vars, buf) ;
-  ccexpandvariables(cch->httpsessionvars, buf) ;
-  ccpurgeremainingvars(buf) ;
+  ccexpandvariables(cch->httpsessionvars, buf, 0, 1) ;
+  ccexpandvariables(cch->vars, buf, 0, 0) ;
 
   // Convert expanded string back to json data
 

@@ -287,23 +287,16 @@ char * ccgetwatchat(CHROMECAST *cch, int index) ;
 
 //////////////////////////////////////////////////////////////////////////
 //
-// @brief Expand the variables in the given buffer
+// @brief Expand variables in format $(var) $(s:var) $(i:var) $(f:var) $(b:var)
 // @param(in) vars Pointer to a variables structure
 // @param(in) buf Pointer to string buffer
+// @param(in) justunquoted If true, only expands unquoted
+// @param(in) leaveifempty If true, empty / invalid variables are not expanded
 // @return True on success
 //
 
-int ccexpandvariables(DATAOBJECT *vars, mem *buf) ;
+int ccexpandvariables(DATAOBJECT *vars, mem *buf, int justunquoted, int leaveifempty) ;
 
-
-//////////////////////////////////////////////////////////////////////////
-//
-// @brief Purge any variables which have not been expanded
-// @param(in) buf Pointer to string buffer
-// @return True on success
-//
-
-int ccpurgeremainingvars(mem *buf) ;
 
 
 //////////////////////////////////////////////////////////////////////////

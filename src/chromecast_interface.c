@@ -491,103 +491,6 @@ char * ccgetwatchat(CHROMECAST *cch, int index)
 }
 
 
-//////////////////////////////////////////////////////////////////////////
-//
-// @brief Expand the variables in the given buffer
-// @param(in) vars Pointer to a variables structure
-// @param(in) buf Pointer to string buffer
-// @return True on success
-//
-
-int ccexpandvariables(DATAOBJECT *vars, mem *buf)
-{
-  if (!vars || !buf) return 0 ;
-
-  DATAOBJECT *vh ;
-  int i=0 ;
-  char varstr[128] ;
-  mem *values ;
-
- // Replace IP Address and Port
-
-  char intbuf[64] ;
-  snprintf(intbuf, sizeof(intbuf)-1, "%d", httpd_port()) ;
-
-  str_replaceall(buf, "$(serverIpAddress)", httpd_ipaddress()) ;
-  str_replaceall(buf, "$(serverPort)", intbuf) ;
-
-
-  while (vh=dochild(donoden(vars,i))) {
-
-     // Get variable data
-
-     char *variable = dogetdata(vh, do_string, NULL, "/variable") ;
-     char *value = dogetdata(vh, do_string, NULL, "/value") ;
-
-     if (variable && value) {
-
-       // Replace quotes in value
-
-       values = mem_malloc(strlen(value)+1024) ;
-       if (!values) return 0 ;
-       str_strcpy(values, value) ;
-       str_replaceall(values, "\"", "\\\"") ;
-
-       // Generate $(variable) name string
-
-       snprintf(varstr, sizeof(varstr)-1, "$(%s)", variable) ;
-
-       // Do replace & tidy up
-
-       str_replaceall(buf, varstr, values) ;
-       mem_free(values) ;
-
-     }
-
-     i++ ;
-  }
-
-  return 1 ;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// @brief Purge any variables which have not been expanded
-// @param(in) buf Pointer to string buffer
-// @return True on success
-//
-
-int ccpurgeremainingvars(mem *buf)
-{
-  char *search ;
-  int start=0 ;
-  while ( search=strstr(&buf[start], "$") ) {
-
-    int searchindex = ((void*)search - (void *)buf) ;
-    int len = 1 ;
-
-    if (buf[searchindex+len]=='(') {
-
-      len++ ;
-      while ( isalnum(buf[searchindex+len]) || buf[searchindex+len]=='_' ) {
-        len++ ;
-      }
-
-      if (buf[searchindex+len]==')') {
-        len++ ;
-        str_insert(buf, searchindex,  len, "") ;
-      }
-
-    }
-
-    // Start the next search just after the current search position
-    start = searchindex+1 ;
-
-  }
-
-  return 1 ;
-}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -896,8 +799,8 @@ int ccsendmessage(CHROMECAST *cch, char *sender, char *receiver, char *namespace
 
   // Substitute Variables
 
-  ccexpandvariables(cch->vars, messagebuf) ;
-  ccpurgeremainingvars(messagebuf) ;
+  ccexpandvariables(cch->httpsessionvars, messagebuf, 0, 1) ;
+  ccexpandvariables(cch->vars, messagebuf, 0, 0) ;
 
   // Update sender, receiver and namespace as required
 

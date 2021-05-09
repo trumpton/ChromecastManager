@@ -2,7 +2,7 @@
 
 EXECUTABLE := chromecastmanager
 
-SOURCE := chromecastmanager.c chromecastmanager_connectionupdate.c chromecastmanager_macro.c chromecastmanager_devicerequest.c chromecastmanager_deviceresponse.c chromecast_mdns.c chromecast_interface.c 
+SOURCE := chromecastmanager.c chromecastmanager_connectionupdate.c chromecastmanager_macro.c chromecastmanager_devicerequest.c chromecastmanager_deviceresponse.c chromecast_mdns.c chromecast_interface.c chromecast_interface_expandvars.c
 
 LIB := libtools/libtools.a
 DBGLIB := libtools/libtools-dbg.a
