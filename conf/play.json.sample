@@ -2,7 +2,7 @@
   "script": [
 
      {
-         "comment": "Check supplied parameters",
+         "comment": "10 Check supplied parameters",
          "op": "test",
          "conditions": [
              {
@@ -14,7 +14,7 @@
      },
 
      {
-         "comment": "Ensure required variables are watched",
+         "comment": "20 Ensure required variables are watched",
          "op": "addwatch",
          "variable": "sessionId",
          "namespace": "urn:x-cast:com.google.cast.receiver",
@@ -23,7 +23,7 @@
      },
 
      {
-         "comment": "Launch the default media server",
+         "comment": "30 Launch the default media server",
          "op": "send",
          "namespace": "urn:x-cast:com.google.cast.receiver",
          "sender": "sender-0",
@@ -36,21 +36,21 @@
      },
 
      {
-         "comment": "Clear sessionId",
+         "comment": "40 Clear sessionId",
          "op": "setwatch",
          "variable": "sessionId",
          "value": ""
      },
 
      {
-         "comment": "Clear playerState",
+         "comment": "50 Clear playerState",
          "op": "setwatch",
          "variable": "playerState",
          "value": "RESETTING"
      },
 
      {
-         "comment": "Wait for the application launch to complete",
+         "comment": "60 Wait for the application launch to complete",
          "op": "test",
          "conditions": [
              {
@@ -68,7 +68,7 @@
      },
 
      {
-         "comment": "Wait for the the new session ID to be reported",
+         "comment": "70 Wait for the the new session ID to be reported",
          "op": "test",
          "conditions": [
              {
@@ -79,7 +79,7 @@
      },
 
      {
-         "comment": "Connect to the media session",
+         "comment": "80 Connect to the media session",
          "op": "send",
          "namespace": "urn:x-cast:com.google.cast.tp.connection",
          "sender": "session-0",
@@ -90,7 +90,7 @@
      },
 
      {
-         "comment": "Send load request to established session",
+         "comment": "90 Send load request to established session",
          "op": "send",
          "namespace": "urn:x-cast:com.google.cast.media",
          "sender": "session-0",
@@ -112,7 +112,7 @@
      },
 
      {
-         "comment": "Wait for the loads to complete",
+         "comment": "100 Wait for the loads to complete",
          "op": "test",
          "conditions": [
              {
@@ -133,18 +133,18 @@
              {
                  "a": "$(playerState)",
                  "b": "BUFFERING",
-                 "goto": "complete"
+                 "goto": "loadcomplete"
              },
              {   
                  "a": "$(playerState)",
                  "b": "PLAYING",
-                 "goto": "complete"
+                 "goto": "loadcomplete"
              }
          ]
      },
 
      {
-         "comment": "Play load failure sound",
+         "comment": "110 Play load failure sound",
          "label": "loadfailed",
          "op": "send",
          "namespace": "urn:x-cast:com.google.cast.media",
@@ -162,42 +162,74 @@
                      "title": "Unable to connect"
                  }
              }
-         },
-         "end": {
+         }
+     },
+
+     {
+         "comment": "120 send load failed message",
+         "op": "respond",
+         "response": {
              "status": "LOADFAILED",
              "responseCode": 200,
              "info": "Play request failed"
-         }
+         },
+         "end": true
      },
 
      {
-         "comment": "Macro complete",
-         "label": "complete",
-         "end": {
+         "comment": "130 Load complete",
+         "op": "respond",
+         "label": "loadcomplete",
+         "response": {
              "status": "OK",
              "responseCode": 200,
              "info": "Play request OK"
-         }
+         },
+         "end": false
      },
 
      {
-         "comment": "Missing Parameters",
+         "comment": "140 Sleep 6 seconds",
+         "op": "pause",
+         "seconds": 6, 
+     },
+
+     {
+         "comment": "150 Stop output and finish",
+         "op": "send",
+         "namespace": "urn:x-cast:com.google.cast.media",
+         "sender": "session-0",
+         "receiver": "$(sessionId)",
+         "message": {
+             "requestId": 23,
+             "type": "STOP",
+             "mediaSessionId": "$(mediaSessionId)"
+             },
+         "end": true
+     },
+
+     {
+         "comment": "160 Missing Parameters",
+         "op": "respond",
          "label": "badparams",
-         "end": {
+         "response": {
              "status": "ERROR",
              "responseCode": 200,
              "info": "Request is missing the url parameter"
-         }
+         },
+         "end": true
      },
 
      {
+         "op": "respond",
          "comment": "Launch Error",
          "label": "launcherror",
-         "end": {
+         "response": {
              "status": "ERROR",
              "responseCode": 200,
              "info": "Unable to launch the Default Media Player"
-         }
+         },
+         "end": true
      }
   ]
 }

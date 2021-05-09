@@ -391,11 +391,13 @@ int main(int argc, char *argv[])
     }
 
     /////////////////////////////////////////////////////
-    // Process chromecast device transaction responses
+    // Process chromecast devices
 
     if (!exit_requested) for (int i=0; i<maxcc; i++) {
 
       if (ccrdfdisset(cch[i], &rfds, &wfds)) {
+
+        // Responses from device
 
         switch (ccrecv(cch[i])) {
 
@@ -426,6 +428,12 @@ int main(int argc, char *argv[])
           break ;
 
         }
+
+      } else if (cch[i] && cch[i]->macro && cch[i]->macroforce ) {
+
+         // Continue to process macro on a timer
+
+         chromecast_macro_process(queriedindex>=0 ? httpsh[queriedindex] : NULL, cch[i]) ;
 
       }
 
@@ -499,6 +507,19 @@ int main(int argc, char *argv[])
 
     // Protection from runaway process
     usleep(100) ;
+
+#ifdef DEBUG
+    static int lps=0 ;
+    static time_t lasttime=0 ;
+    time_t thistime=time(NULL) ;
+    if (thistime!=lasttime) {
+      printf("Loops/Second: %d\n", lps) ;
+      lps=0 ;
+      lasttime=thistime ;
+    } else {
+      lps++ ;
+    }
+#endif
 
   } while (!exit_requested) ;
 

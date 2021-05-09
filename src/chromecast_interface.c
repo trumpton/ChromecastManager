@@ -560,9 +560,9 @@ int ccexpandvariables(DATAOBJECT *vars, mem *buf)
 
 int ccpurgeremainingvars(mem *buf)
 {
-
   char *search ;
-  while ( search=strstr(buf, "$") ) {
+  int start=0 ;
+  while ( search=strstr(&buf[start], "$") ) {
 
     int searchindex = ((void*)search - (void *)buf) ;
     int len = 1 ;
@@ -580,6 +580,9 @@ int ccpurgeremainingvars(mem *buf)
       }
 
     }
+
+    // Start the next search just after the current search position
+    start = searchindex+1 ;
 
   }
 

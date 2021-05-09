@@ -74,12 +74,13 @@ typedef struct {
   DATAOBJECT *recvobject ;
   DATAOBJECT *sendobject ;
 
-  DATAOBJECT *macro ;
-  int macroindex ;
-  time_t macrotimer ;
+  DATAOBJECT *macro ;  // Macro data
+  int macroindex ;     // Current step number
+  time_t macrotimer ;  // Time value that pause started
+  int macroforce ;     // Force service even if no message received
 
-  time_t lastreceipt ;
-  int pingssent ;
+  time_t lastreceipt ; // Time last message was received
+  int pingssent ;      // Number of pings sent
 
   // flags field for user to set/get as sees fit
   int flags ; 

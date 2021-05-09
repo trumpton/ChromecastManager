@@ -52,7 +52,7 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
       // Send response
 
-      hsend(httpsh, responseCode, "text/html",
+      hsend(httpsh, responseCode, "application/json",
             "{\n  \"status\":\"%s\",\n  \"info\":\"%s\"\n}",
             status, info) ;
 
@@ -79,7 +79,7 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
       // Send response
 
-      hsend(httpsh, responseCode, "text/html",
+      hsend(httpsh, responseCode, "application/json",
             "{\n  \"status\":\"%s\",\n  \"info\":\"%s\"\n}",
             status, info) ;
 
@@ -99,7 +99,7 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
       // Send response
 
-      hsend(httpsh, responseCode, "text/html",
+      hsend(httpsh, responseCode, "application/json",
             "{\n  \"status\":\"%s\",\n  \"info\":\"%s\"\n}",
             status, info) ;
 
@@ -139,7 +139,7 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
           // Send response
 
-          hsend(httpsh, responseCode, "text/html",
+          hsend(httpsh, responseCode, "application/json",
                 "{\n  \"status\":\"%s\",\n  \"info\":\"%s\"\n}",
                 status, info) ;
 
@@ -190,6 +190,7 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
     // First macro step is 1 (at index 0)
     cch->macroindex=1 ;
     cch->macrotimer = (time_t)0 ;
+    cch->macroforce = 0 ;
 
     return chromecast_macro_process(httpsh, cch) ;
 
@@ -219,14 +220,16 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
  
   int loopcount=20 ; // Detection of infinate loops
 
-  if (!httpsh || !cch) return 0 ;
-
+  if (!cch) return 0 ;
   if (!cch->macro) return 1 ;
 
   DATAOBJECT *thisstep ;
   int num = cch->macroindex-1 ;
   int last = -1 ;
- 
+
+  // Cancel any force (it can be reasserted if required) 
+  cch->macroforce=0 ;
+
   while ( (thisstep=dochild(dofindnode(cch->macro, "/script/%d", num))) && 
           num>=0 && num!=last && (loopcount--)>0) {
 
@@ -332,10 +335,16 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
           logmsg( LOG_DEBUG, "Macro @%d%s%s%s pause complete", 
                   num+1, comment?" (":"", comment?comment:"", comment?")":"") ;
           num++ ;
+          cch->macrotimer=(time_t)0 ;
 
         }
 
       }
+
+      // Force script to re-trigger even if no
+      // data traffic event arrives.
+
+      cch->macroforce=1 ;
 
 
     } else if (op && strcmp(op, "send")==0) {
@@ -423,7 +432,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
                 condindex+1, a?a:"", b?b:"", v?v:"", e?e:"", g?g:"", type?type:"",
                 type?" ":"", gotolabel?gotolabel:"") ;
 
-        condindex++ ;
+        if (!type) condindex++ ;
 
       }
 
@@ -456,62 +465,90 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
             }
             j++ ;
           }
+
+          if (!found) {
+            logmsg( LOG_ERR, "Macro @%d - test condition %d - invalid GOTO label, aborting", 
+                    last+1, condindex+1) ;
+            num=-1 ;
+          }
+
         }
 
       }
 
-    }
+    } else if (op && strcmp(op, "respond")==0) {
 
-    // Sequence End Identified, send response
+      DATAOBJECT *respond = dochild(dofindnode(step, "/response"));
 
-    DATAOBJECT *endcode = dochild(dofindnode(step, "/end"));
+      if (respond) {
 
-    if (endcode) {
+        // Sequence "respond" Identified, send response
+
+        if (httpsh) {
+  
+          char *comment=dogetdata(step, do_string, NULL, "/comment") ;
+
+           logmsg( LOG_DEBUG, "Macro @%d%s%s%s sending http response", 
+                   last+1, comment?" (":"", comment?comment:"", comment?")":"") ;
+
+           unsigned long int responseCode = 200 ;
+           dogetuint(respond, do_uint32, &responseCode, "/responseCode") ;
+           char *json = doasjson(respond, NULL) ;
+
+           hsend( httpsh, responseCode, "application/json", "%s", json?json:"{\"status\":\"INTERR\"}" ) ;
+
+           num++ ;
+
+         }
+
+       } else {
+
+          logmsg( LOG_ERR, "Macro @%d - missing response, aborting", last+1) ;
+          num=-1 ;
+
+       }
+
+
+    } else {
+
+      // Invalid op 
 
       char *comment=dogetdata(step, do_string, NULL, "/comment") ;
 
-      logmsg( LOG_DEBUG, "Macro @%d%s%s%s end", 
-              num+1, comment?" (":"", comment?comment:"", comment?")":"") ;
+      logmsg( LOG_ERR, "Macro @%d - bad or missing 'op', aborting", last+1) ;
+      num=-1 ;
+      op=NULL ;
 
-       if (httpsh) {
-  
-         int responseCode=200 ;
-         char *status = "OK" ;
-         char *info = "" ;
+    }
 
-         char *json = doasjson(endcode,NULL) ;
 
-         hsend(httpsh, responseCode, "text/html", "%s",
-           json?json:"\"status\":\"UNKNOWN\",\"info\":\"check end section in script\"}") ;
-       }
+    if (loopcount==1) {
 
-       num=-1 ;
-
-    } else if (loopcount==1) {
-
-      int responseCode=200 ;
-      char *status = "FAILED" ;
-      char *info = "infinate loop in macro script" ;
-
-      if (httpsh) {
-        hsend(httpsh, responseCode, "text/html",
-              "{\n  \"status\":\"%s\",\n  \"info\":\"%s\"\n}",
-              status, info) ;
-      }
-
+      // Probably stuck in a loop, so bail  
+ 
+      logmsg( LOG_ERR, "Macro @%d - probable infinate loop, aborting", last+1) ;
       num=-1 ;
 
     }
 
+    unsigned long int endflag=0 ;
+    dogetuint(step, do_uint32, &endflag, "/end") ;
+    if (endflag) {
+      num=-1 ;
+    }
+
     dodelete(step) ;
-    
+   
   }
 
   cch->macroindex=num+1 ;
 
   if (num<1 || !thisstep) {
+    if (last>=0) logmsg( LOG_DEBUG, "Macro @%d end", last+1) ;
     if (cch->macro) dodelete(cch->macro) ;
     cch->macro = NULL ;
+    cch->macroindex = -1 ;
+    cch->macrotimer = (time_t)0 ;
     if (cch->httpsessionvars) dodelete(cch->httpsessionvars) ;
     cch->httpsessionvars = NULL ;
   }
@@ -533,10 +570,13 @@ int _expand_entry_variables(DATAOBJECT *entry, CHROMECAST *cch)
   int len ;
   mem *buf ;
 
+  if (!entry || !cch) return 0 ;
+
   // Convert entry data to a string
 
   char *entryasjson = doasjson(entry, &len) ;
   buf=mem_malloc(len+1024) ;
+
   str_strcpy(buf, entryasjson) ;
 
   // Expand variables from watches and httpd queries
@@ -550,6 +590,8 @@ int _expand_entry_variables(DATAOBJECT *entry, CHROMECAST *cch)
   doclear(entry) ;
   dofromjson(entry, buf) ;
   mem_free(buf) ;
+
+  return 1 ;
 
 }
 
