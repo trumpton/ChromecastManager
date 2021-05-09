@@ -66,6 +66,8 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
     // Errors expanding macro, so report
 
+    logmsg(LOG_ERR, "Macro parsing error: %s", dojsonparsestrerror(cch->macro)) ;
+
     if (httpsh) {
 
       int responseCode=200 ;
