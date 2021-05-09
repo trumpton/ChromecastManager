@@ -189,13 +189,28 @@
      },
 
      {
-         "comment": "140 Sleep 6 seconds",
-         "op": "pause",
-         "seconds": 6, 
+         "comment": "140 Check for sleep",
+         "op": "test",
+         "conditions": [
+             "v": "$(sleep)",
+             "goto": "haveanap"
+         ]
+
      },
 
      {
-         "comment": "150 Stop output and finish",
+        "op": "end"
+     },
+
+     {
+         "comment": "150 Sleep $(sleep) minutes",
+         "label": "haveanap",
+         "op": "pause",
+         "minutes": $(sleep), 
+     },
+
+     {
+         "comment": "160 output and finish",
          "op": "send",
          "namespace": "urn:x-cast:com.google.cast.media",
          "sender": "session-0",

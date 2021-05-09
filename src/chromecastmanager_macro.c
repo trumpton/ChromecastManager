@@ -508,6 +508,9 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
        }
 
+    } else if (op && strcmp(op, "end")==0) {
+
+       num=-1 ;
 
     } else {
 
