@@ -261,7 +261,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
       }
 
       char *comment=dogetdata(step, do_string, NULL, "/comment") ;
-      logmsg( LOG_DEBUG, "Macro @%d%s%s%s add '%s' watch", 
+      logmsg( LOG_INFO, "Macro @%d%s%s%s add '%s' watch", 
               num+1, comment?" (":"", comment?comment:"", comment?")":"",
               variable?variable:"(invalid)") ;
       num++ ;
@@ -279,14 +279,14 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
         dosetdata(cch->vars, do_string, value?value:"", len, "/%s/value", variable) ;
 
         char *comment=dogetdata(step, do_string, NULL, "/comment") ;
-        logmsg( LOG_DEBUG, "Macro @%d%s%s%s set '%s' to '%s'", 
+        logmsg( LOG_INFO, "Macro @%d%s%s%s set '%s' to '%s'", 
                 num+1, comment?" (":"", comment?comment:"", comment?")":"",
                 variable, value?value:"") ;
 
       } else {
 
         char *comment=dogetdata(step, do_string, NULL, "/comment") ;
-        logmsg( LOG_DEBUG, "Macro @%d%s%s%s set '%s' invalid (not watched)", 
+        logmsg( LOG_INFO, "Macro @%d%s%s%s set '%s' invalid (not watched)", 
                 num+1, comment?" (":"", comment?comment:"", comment?")":"",
                 variable) ;
       }
@@ -318,7 +318,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
       if (tis<=0) {
 
-        logmsg( LOG_DEBUG, "Macro @%d%s%s%s skipping empty pause", 
+        logmsg( LOG_INFO, "Macro @%d%s%s%s skipping empty pause", 
                 num+1, comment?" (":"", comment?comment:"", comment?")":"") ;
         num++ ;
 
@@ -326,13 +326,13 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
         if (cch->macrotimer == (time_t)0 ) {
 
-          logmsg( LOG_DEBUG, "Macro @%d%s%s%s starting pause for %ld seconds", 
+          logmsg( LOG_INFO, "Macro @%d%s%s%s starting pause for %ld seconds", 
                   num+1, comment?" (":"", comment?comment:"", comment?")":"", tis) ;
           cch->macrotimer = time(NULL) ;
 
         } else if ( time(NULL) >= (cch->macrotimer + tis) ) {
 
-          logmsg( LOG_DEBUG, "Macro @%d%s%s%s pause complete", 
+          logmsg( LOG_INFO, "Macro @%d%s%s%s pause complete", 
                   num+1, comment?" (":"", comment?comment:"", comment?")":"") ;
           num++ ;
           cch->macrotimer=(time_t)0 ;
@@ -357,7 +357,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
       char *message=doasjson(dochild(dofindnode(step,"/message")), NULL) ;
       char *comment=dogetdata(step, do_string, NULL, "/comment") ;
 
-      logmsg( LOG_DEBUG, "Macro @%d%s%s%s send message", 
+      logmsg( LOG_INFO, "Macro @%d%s%s%s send message", 
               num+1, comment?" (":"", comment?comment:"", comment?")":"") ;
 
       ccsendmessage(cch, sender, receiver, namespace, message) ;
@@ -439,7 +439,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
       if (type) {
 
         char *comment=dogetdata(step, do_string, NULL, "/comment") ;
-        logmsg( LOG_DEBUG, "Macro @%d%s%s%s test condition %d triggered - %s %s", 
+        logmsg( LOG_INFO, "Macro @%d%s%s%s test condition %d triggered - %s %s", 
                 num+1, comment?" (":"", comment?comment:"", comment?")":"",
                 condindex+1, type, gotolabel?gotolabel:"next") ;
 
@@ -488,7 +488,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
   
           char *comment=dogetdata(step, do_string, NULL, "/comment") ;
 
-           logmsg( LOG_DEBUG, "Macro @%d%s%s%s sending http response", 
+           logmsg( LOG_INFO, "Macro @%d%s%s%s sending http response", 
                    last+1, comment?" (":"", comment?comment:"", comment?")":"") ;
 
            unsigned long int responseCode = 200 ;
@@ -547,7 +547,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
   cch->macroindex=num+1 ;
 
   if (num<1 || !thisstep) {
-    if (last>=0) logmsg( LOG_DEBUG, "Macro @%d end", last+1) ;
+    if (last>=0) logmsg( LOG_INFO, "Macro @%d end", last+1) ;
     if (cch->macro) dodelete(cch->macro) ;
     cch->macro = NULL ;
     cch->macroindex = -1 ;
