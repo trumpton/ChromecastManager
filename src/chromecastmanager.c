@@ -508,7 +508,7 @@ int main(int argc, char *argv[])
     // Protection from runaway process
     usleep(100) ;
 
-#ifdef DEBUG
+#ifdef DEBUGLOOPS
     static int lps=0 ;
     static time_t lasttime=0 ;
     time_t thistime=time(NULL) ;

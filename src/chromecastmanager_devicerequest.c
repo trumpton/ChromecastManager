@@ -178,7 +178,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
 
     if (!json) {
 
-      logmsg(LOG_INFO, "Processing request: %s from %s:%d - error in request body - FAILED", 
+      logmsg(LOG_ERR, "Processing request: %s from %s:%d - error in request body - FAILED", 
                        uri, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
       index=-1 ;
 
@@ -189,7 +189,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
 
     } else {
 
-      logmsg(LOG_INFO, "Processing request: %s from %s:%d - json script loading error - FAILED", 
+      logmsg(LOG_ERR, "Processing request: %s from %s:%d - json script loading error - FAILED", 
                        uri, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
       index=-1 ;
 
@@ -205,7 +205,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
 
     if (!json) {
 
-      logmsg(LOG_INFO, "Processing request: %s from %s:%d - script not found - FAILED", 
+      logmsg(LOG_ERR, "Processing request: %s from %s:%d - script not found - FAILED", 
                        uri, 
                        hpeeripaddress(httpsh), hpeerport(httpsh)) ;
       index=-1 ;
@@ -218,7 +218,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
 
     } else {
 
-      logmsg(LOG_INFO, "Processing request: %s from %s:%d - json script loading error - FAILED", 
+      logmsg(LOG_ERR, "Processing request: %s from %s:%d - json script loading error - FAILED", 
                        uri, 
                        hpeeripaddress(httpsh), hpeerport(httpsh)) ;
       index=-1 ;
