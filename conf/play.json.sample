@@ -172,8 +172,7 @@
              "status": "LOADFAILED",
              "responseCode": 200,
              "info": "Play request failed"
-         },
-         "end": true
+         }
      },
 
      {
@@ -184,33 +183,33 @@
              "status": "OK",
              "responseCode": 200,
              "info": "Play request OK"
-         },
-         "end": false
+         }
      },
 
      {
-         "comment": "140 Check for sleep",
+         "comment": "Check if sleep requested",
          "op": "test",
          "conditions": [
-             "v": "$(sleep)",
-             "goto": "haveanap"
+             {
+                 "v": "$(sleep)",
+                 "goto": "takeanap"
+             }
          ]
-
      },
 
      {
-        "op": "end"
+         "op": "end"
      },
 
      {
-         "comment": "150 Sleep $(sleep) minutes",
-         "label": "haveanap",
+         "comment": "140 Sleep $(i:sleep) seconds",
+         "label": "takeanap",
          "op": "pause",
-         "minutes": $(sleep), 
+         "minutes": $(i:sleep)
      },
 
      {
-         "comment": "160 output and finish",
+         "comment": "150 Stop output and finish",
          "op": "send",
          "namespace": "urn:x-cast:com.google.cast.media",
          "sender": "session-0",
@@ -219,8 +218,11 @@
              "requestId": 23,
              "type": "STOP",
              "mediaSessionId": "$(mediaSessionId)"
-             },
-         "end": true
+             }
+     },
+
+     {
+         "op": "end"
      },
 
      {
@@ -231,8 +233,11 @@
              "status": "ERROR",
              "responseCode": 200,
              "info": "Request is missing the url parameter"
-         },
-         "end": true
+         }
+     },
+
+     {
+         "op": "end"
      },
 
      {
@@ -243,9 +248,15 @@
              "status": "ERROR",
              "responseCode": 200,
              "info": "Unable to launch the Default Media Player"
-         },
+         }
+     },
+
+     {
+         "comment": "Think this bails if the script runs off the end or the end:true is reached.  Also pause should only end:true if it has timed out",
+         "op": "end",
          "end": true
      }
+
   ]
 }
 
