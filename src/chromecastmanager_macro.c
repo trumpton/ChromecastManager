@@ -528,9 +528,15 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
        }
 
-    } else if (op && strcmp(op, "end")==0) {
+    } else if (!op) {
 
-       num=-1 ;
+      // No Opcode
+
+      char *comment=dogetdata(step, do_string, NULL, "/comment") ;
+
+      logmsg( LOG_INFO, "Macro @%d%s%s%s - no opcode, skipping to next", 
+              last+1, comment?" (":"", comment?comment:"", comment?")":"") ;
+       num++ ;
 
     } else {
 
@@ -538,7 +544,8 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
       char *comment=dogetdata(step, do_string, NULL, "/comment") ;
 
-      logmsg( LOG_ERR, "Macro @%d - bad or missing 'op', aborting", last+1) ;
+      logmsg( LOG_ERR, "Macro @%d%s%s%s - bad or missing 'op', aborting", 
+              last+1, comment?" (":"", comment?comment:"", comment?")":"") ;
       num=-1 ;
       op=NULL ;
 
