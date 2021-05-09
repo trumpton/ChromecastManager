@@ -556,8 +556,6 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
     unsigned long int endflag=0 ;
     dogetuint(step, do_bool, &endflag, "/end") ;
-dodump(step,"ENDSEARCH") ;
-printf("endflag=%ld\n", endflag) ;
     if (endflag) {
       num=-1 ;
     }
