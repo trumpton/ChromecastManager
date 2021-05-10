@@ -546,7 +546,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
       char *comment=dogetdata(step, do_string, NULL, "/comment") ;
 
-      logmsg( LOG_INFO, "Macro @%d%s%s%s - no opcode, skipping to next", 
+      logmsg( LOG_INFO, "Macro @%d%s%s%s no opcode - skipping to next", 
               last+1, comment?" (":"", comment?comment:"", comment?")":"") ;
        num++ ;
 
