@@ -573,10 +573,14 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
     }
 
-    unsigned long int endflag=0 ;
-    dogetuint(step, do_bool, &endflag, "/end") ;
-    if (endflag) {
-      num=-1 ;
+    if (!op || (strcmp(op, "pause")!=0 && strcmp(op, "test")!=0) ) {
+
+      unsigned long int endflag=0 ;
+      dogetuint(step, do_bool, &endflag, "/end") ;
+      if (endflag) {
+        num=-1 ;
+      }
+
     }
 
     dodelete(step) ;
