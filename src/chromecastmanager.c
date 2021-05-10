@@ -27,6 +27,9 @@
 //  messages are suppressed from the logs as there tend to be an awful lot of them.
 //
 
+// Print out select status
+//#define SELECTDEBUG
+
 #include <string.h>
 #include <stdarg.h>
 #include <signal.h>
@@ -75,8 +78,10 @@ void sighupHandler(int sig_num) {
   exit_requested=1 ;
 }
 
+// SIGPIPE handler needed for valgrind
 void sigpipeHandler(int sig_num) {
-  signal(SIGPIPE, sighupHandler);
+  signal(SIGPIPE, sigpipeHandler);
+  logmsg(LOG_NOTICE, "sigpipe received - ignoring") ;
 }
 
 void setfdsetdbgstr(char *str, int reset, char *template, ...) ;
@@ -338,6 +343,8 @@ int main(int argc, char *argv[])
         int timeout = hqi[hc]>=0 ? 5 : 2 ;
 
         if (httpsh[hc] && hfd(httpsh[hc])>0 && hconnectiontime(httpsh[hc]) > timeout ) {
+          logmsg( LOG_DEBUG, "Connection timed out (%s:%d )", 
+                  hpeeripaddress(httpsh[hc]), hpeerport(httpsh[hc])) ;
           hclose(httpsh[hc]) ;
           httpsh[hc]=NULL ;
           hqi[hc]=-1 ;
@@ -432,6 +439,11 @@ int main(int argc, char *argv[])
       } else if (cch[i] && cch[i]->macro && cch[i]->macroforce ) {
 
          // Continue to process macro on a timer
+
+         queriedindex=-1 ;
+         for (int hc=0; hc<MAXHT && queriedindex<0; hc++) {
+           if (hqi[hc] == i) queriedindex=hc ;
+         }
 
          chromecast_macro_process(queriedindex>=0 ? httpsh[queriedindex] : NULL, cch[i]) ;
 

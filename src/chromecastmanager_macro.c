@@ -246,6 +246,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
   DATAOBJECT *thisstep ;
   int num = cch->macroindex-1 ;
   int last = -1 ;
+  int responsemessagesent=0 ;
 
   // Cancel any force (it can be reasserted if required) 
   cch->macroforce=0 ;
@@ -504,29 +505,40 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
         // Sequence "respond" Identified, send response
 
-        if (httpsh) {
+        if (httpsh && !responsemessagesent) {
   
           char *comment=dogetdata(step, do_string, NULL, "/comment") ;
 
-           logmsg( LOG_INFO, "Macro @%d%s%s%s sending http response", 
-                   last+1, comment?" (":"", comment?comment:"", comment?")":"") ;
+          logmsg( LOG_INFO, "Macro @%d%s%s%s sending http response", 
+                  last+1, comment?" (":"", comment?comment:"", comment?")":"") ;
 
-           unsigned long int responseCode = 200 ;
-           dogetuint(respond, do_uint32, &responseCode, "/responseCode") ;
-           char *json = doasjson(respond, NULL) ;
+          unsigned long int responseCode = 200 ;
+          dogetuint(respond, do_uint32, &responseCode, "/responseCode") ;
+          char *json = doasjson(respond, NULL) ;
 
-           hsend( httpsh, responseCode, "application/json", "%s", json?json:"{\"status\":\"INTERR\"}" ) ;
+          hsend( httpsh, responseCode, "application/json", "%s", json?json:"{\"status\":\"INTERR\"}" ) ;
 
-           num++ ;
-
-         }
+          responsemessagesent=1 ;
 
        } else {
 
-          logmsg( LOG_ERR, "Macro @%d - missing response, aborting", last+1) ;
-          num=-1 ;
+          char *comment=dogetdata(step, do_string, NULL, "/comment") ;
+
+          logmsg( LOG_INFO, "Macro @%d%s%s%s not sending http response%s%s", 
+                  last+1, comment?" (":"", comment?comment:"", comment?")":"",
+                  httpsh?"":" - http session not active",
+                  responsemessagesent?" - response already sent":"") ;
 
        }
+
+       num++ ;
+
+     } else {
+
+        logmsg( LOG_ERR, "Macro @%d - missing response, aborting", last+1) ;
+        num=-1 ;
+
+     }
 
     } else if (!op) {
 
