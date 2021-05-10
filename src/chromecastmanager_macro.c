@@ -44,37 +44,92 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
   if (!cch->macro || !cch->httpsessionvars) goto fail ;
 
-  if (!macro) {
+  if (httpsh) {
 
-    if (httpsh) {
+    char *body = hgetbody(httpsh) ;
 
-      int responseCode=200 ;
-      char *status = "FAILED" ;
-      char *info = "json body missing in request" ;
+    if (body) {
 
-      // Send response
+      /////////////////////////////////////////////////////
+      // Create httpsessionvars variables from http body
 
-      hsend(httpsh, responseCode, "application/json",
-            "{\n  \"status\":\"%s\",\n  \"info\":\"%s\"\n}",
-            status, info) ;
+      DATAOBJECT *bh = donew() ;
+      if (!bh) goto fail ;
+        
+      if (!dofromjson(bh, body)) {
+
+        // Errors expanding variables, so report
+
+        int responseCode=200 ;
+        char *status = "FAILED" ;
+        char *info = dojsonparsestrerror(cch->macro) ;
+
+        // Convert double quotes to single in info so that the json response does
+        // not break
+
+        for (int i=0; i<strlen(info); i++) { if (info[i]=='\"') info[i]='\'' ; }
+
+        // Send response
+
+        hsend(httpsh, responseCode, "application/json",
+              "{\n  \"status\":\"%s\",\n  \"info\":\"%s\"\n}",
+              status, info) ;
+
+        dodelete(bh) ;
+        goto fail ;
+ 
+      } else {
+
+        DATAOBJECT *v ;
+        char *variable ;
+        char *value ;
+        int i=0 ;
+
+        while (v=donoden(bh, i++)) {
+
+          variable=donodelabel(v) ;
+          value=donodedata(v, NULL) ;
+
+          if (variable && value && *variable!='\0') {
+            dosetdata(cch->httpsessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
+            dosetdata(cch->httpsessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
+          }
+
+        }
+
+        dodelete(bh) ;
+
+      }
 
     }
 
-    goto fail ;
+    /////////////////////////////////////////////////////
+    // Create httpsessionvars variables from http query parameters
+
+    char *variable ;
+    int index=1 ;
+    while (variable=hgeturiparamname(httpsh, index++)) {
+
+      dosetdata(cch->httpsessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
+
+      char *value = hgeturiparamstr(httpsh, variable) ;
+      if (value) dosetdata(cch->httpsessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
+
+    }
 
   }
 
-
+  /////////////////////////////////////////////////////
   // Copy macro and expand unquoted variables only
 
   evmacro = mem_malloc(strlen(macro)+1024) ;
-  if (!evmacro) return 0 ;
+  if (!evmacro) goto fail ;
 
   strcpy(evmacro, macro) ;
-
   ccexpandvariables(cch->vars, evmacro, 1, 1) ;
   ccexpandvariables(cch->httpsessionvars, evmacro, 1, 0) ;
 
+  /////////////////////////////////////////////////////
   // Then parse macro
 
   if (!dofromjson(cch->macro, evmacro) ) {
@@ -126,94 +181,20 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
   }
 
-  else {
-
-    // Macro OK
-
-    if (httpsh) {
-
-      // Create httpsessionvars variables from http body
-
-      char *body = hgetbody(httpsh) ;
-
-      if (body) {
-
-        DATAOBJECT *bh = donew() ;
-        if (!bh) goto fail ;
-        
-        if (!dofromjson(bh, body)) {
-
-          // Errors expanding variables, so report
-
-          int responseCode=200 ;
-          char *status = "FAILED" ;
-          char *info = dojsonparsestrerror(cch->macro) ;
-
-          // Convert double quotes to single in info so that the json response does
-          // not break
-
-          for (int i=0; i<strlen(info); i++) { if (info[i]=='\"') info[i]='\'' ; }
-
-          // Send response
-
-          hsend(httpsh, responseCode, "application/json",
-                "{\n  \"status\":\"%s\",\n  \"info\":\"%s\"\n}",
-                status, info) ;
-
-          dodelete(bh) ;
-          goto fail ;
  
-        } else {
+  /////////////////////////////////////////////////////
+  // First macro step is 1 (index=0) - start processing
 
-          DATAOBJECT *v ;
-          char *variable ;
-          char *value ;
-          int i=0 ;
+  cch->macroindex=1 ;
+  cch->macrotimer = (time_t)0 ;
+  cch->macroforce = 0 ;
 
-          while (v=donoden(bh, i++)) {
+  mem_free(evmacro) ;
 
-            variable=donodelabel(v) ;
-            value=donodedata(v, NULL) ;
+  return chromecast_macro_process(httpsh, cch) ;
 
-            if (variable && value && *variable!='\0') {
-              dosetdata(cch->httpsessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
-              dosetdata(cch->httpsessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
-            }
-
-          }
-
-          dodelete(bh) ;
-
-        }
-
-
-      }
-
-      // Create httpsessionvars variables from http query parameters
-
-      char *variable ;
-      int index=1 ;
-      while (variable=hgeturiparamname(httpsh, index++)) {
-
-        dosetdata(cch->httpsessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
-
-        char *value = hgeturiparamstr(httpsh, variable) ;
-        if (value) dosetdata(cch->httpsessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
-
-      }
-
-    }
-
-    // First macro step is 1 (at index 0)
-    cch->macroindex=1 ;
-    cch->macrotimer = (time_t)0 ;
-    cch->macroforce = 0 ;
-
-    mem_free(evmacro) ;
-
-    return chromecast_macro_process(httpsh, cch) ;
-
-  }
+  /////////////////////////////////////////////////////
+  // Failure - tidy up and return
 
 fail:
   cch->macroindex=0 ;
