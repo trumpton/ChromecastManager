@@ -360,10 +360,13 @@ int chromecast_device_request_process_serverinfo(HTTPD *httpsh)
   struct dirent *ent;
   int index=0 ;
   if ( dir = opendir(getscriptfolder()) ) {
+
     while ( ent = readdir(dir) ) {
+
       char *fnm = ent->d_name ;
       char *ext = strchr(fnm, '.') ;
-      if (strcmp(ext, ".json")==0) {
+
+      if (ext && strcmp(ext, ".json")==0) {
         *ext='\0' ;
         snprintf(line, sizeof(line)-1, "%s\n      \"%s\"", (index++)!=0?",":"", fnm);
         if (strlen(line)+strlen(buf)<sizeof(buf)-1) strcat(buf,line) ;
