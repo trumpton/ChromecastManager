@@ -34,12 +34,11 @@ fi
 
 # Unpack to /tmp
 
-if [ ! -f "$CHECK" ]; then
-  echo "Downloading from GIT"
-  mkdir -p "$DEST"
-  cd "$DEST/.."
-  git clone $GIT
-fi
+/bin/rm -rf "$DEST"
+echo "Downloading from GIT"
+mkdir -p "$DEST"
+cd "$DEST/.."
+git clone $GIT
 
 if [ ! -f "$CHECK" ]; then
   echo "$APP source not found in $DEST - aborting"
