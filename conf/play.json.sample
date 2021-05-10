@@ -19,7 +19,8 @@
          "variable": "sessionId",
          "namespace": "urn:x-cast:com.google.cast.receiver",
          "type": "RECEIVER_STATUS",
-         "path": "/message/status/applications/0/sessionId"
+         "path": "/message/status/applications/0/sessionId",
+
      },
 
      {
@@ -192,19 +193,23 @@
          "conditions": [
              {
                  "v": "$(sleep)",
-                 "goto": "takeanap"
+                 "goto": "takeanap",
+                 "else": "finish"
              }
          ]
      },
 
      {
-         "op": "end"
+         "comment": "Finish",
+         "label" "finish",
+         "end": true
      },
 
      {
-         "comment": "140 Sleep $(i:sleep) seconds",
+         "comment": "140 Sleep $(i:sleep) minutes 5 seconds",
          "label": "takeanap",
          "op": "pause",
+         "seconds": 5,
          "minutes": $(i:sleep)
      },
 
@@ -218,11 +223,8 @@
              "requestId": 23,
              "type": "STOP",
              "mediaSessionId": "$(mediaSessionId)"
-             }
-     },
-
-     {
-         "op": "end"
+             },
+         "end": true
      },
 
      {
@@ -233,11 +235,8 @@
              "status": "ERROR",
              "responseCode": 200,
              "info": "Request is missing the url parameter"
-         }
-     },
-
-     {
-         "op": "end"
+         },
+         "end": true
      },
 
      {
@@ -248,12 +247,7 @@
              "status": "ERROR",
              "responseCode": 200,
              "info": "Unable to launch the Default Media Player"
-         }
-     },
-
-     {
-         "comment": "Think this bails if the script runs off the end or the end:true is reached.  Also pause should only end:true if it has timed out",
-         "op": "end",
+         },
          "end": true
      }
 
