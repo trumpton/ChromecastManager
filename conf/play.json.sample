@@ -208,9 +208,14 @@
      {
          "comment": "140 Sleep $(i:sleep) minutes 5 seconds",
          "label": "takeanap",
-         "op": "pause",
-         "seconds": 5,
-         "minutes": $(i:sleep)
+         "op": "test",
+         "conditions": [
+           {
+             "seconds": 5,
+             "minutes": $(i:sleep),
+             "goto": "next"
+           }
+         ]
      },
 
      {

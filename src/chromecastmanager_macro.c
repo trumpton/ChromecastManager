@@ -247,7 +247,11 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
     if (op && strcmp(op, "addwatch")==0) {
 
+      /////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////
+      //
       // Add / update a watch
+      //
 
       char *variable = dogetdata(step, do_string, NULL, "/variable") ;
       char *namespace = dogetdata(step, do_string, NULL, "/namespace") ;
@@ -268,9 +272,15 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
               variable?variable:"(invalid)") ;
       num++ ;
 
+
+
     } else if (op && strcmp(op, "setwatch")==0) {
  
+      /////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////
+      //
       // Set a watch variable to a specific value
+      //
 
       char *variable = dogetdata(step, do_string, NULL, "/variable") ;
       char *value = dogetdata(step, do_string, NULL, "/value") ;
@@ -287,87 +297,47 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
       } else {
 
+
         char *comment=dogetdata(step, do_string, NULL, "/comment") ;
         logmsg( LOG_INFO, "Macro @%d%s%s%s set '%s' invalid (not watched)", 
                 num+1, comment?" (":"", comment?comment:"", comment?")":"",
                 variable) ;
       }
 
-
       num++ ;
 
-    } else if (op && strcmp(op, "pause")==0) {
-
-      // Pause for specified interval
-
-      unsigned long int tih = 0, tim = 0, tis = 0 ;
- 
-      char *tss = dogetdata(step, do_string, NULL, "/seconds") ;
-      char *tsm = dogetdata(step, do_string, NULL, "/minutes") ;
-      char *tsh = dogetdata(step, do_string, NULL, "/hours") ;
-      char *comment=dogetdata(step, do_string, NULL, "/comment") ;
-
-      if (tss) { tis = atoi(tss) ; } 
-      else { dogetuint(step, do_int32, &tis, "/seconds") ; }
-
-      if (tsm) { tim = atoi(tsm) ; } 
-      else { dogetuint(step, do_int32, &tim, "/minutes") ; }
-
-      if (tsh) { tih = atoi(tsh) ; } 
-      else { dogetuint(step, do_int32, &tih, "/hours") ; }
-
-      tis = tis + tim*60 + tih*3600 ;
-
-      if (tis<=0) {
-
-        logmsg( LOG_INFO, "Macro @%d%s%s%s skipping empty pause", 
-                num+1, comment?" (":"", comment?comment:"", comment?")":"") ;
-        num++ ;
-
-      } else {
-
-        if (cch->macrotimer == (time_t)0 ) {
-
-          logmsg( LOG_INFO, "Macro @%d%s%s%s starting pause for %ld seconds", 
-                  num+1, comment?" (":"", comment?comment:"", comment?")":"", tis) ;
-          cch->macrotimer = time(NULL) ;
-
-        } else if ( time(NULL) >= (cch->macrotimer + tis) ) {
-
-          logmsg( LOG_INFO, "Macro @%d%s%s%s pause complete", 
-                  num+1, comment?" (":"", comment?comment:"", comment?")":"") ;
-          num++ ;
-          cch->macrotimer=(time_t)0 ;
-
-        }
-
-      }
-
-      // Force script to re-trigger even if no
-      // data traffic event arrives.
-
-      cch->macroforce=1 ;
 
 
     } else if (op && strcmp(op, "send")==0) {
  
+      /////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////
+      //
       // Send message to the chromecast device
+      //
 
       char *namespace=dogetdata(step, do_string, NULL, "/namespace") ;
       char *sender=dogetdata(step, do_string, NULL, "/sender") ;
       char *receiver=dogetdata(step, do_string, NULL, "/receiver") ;
       char *message=doasjson(dochild(dofindnode(step,"/message")), NULL) ;
-      char *comment=dogetdata(step, do_string, NULL, "/comment") ;
 
+      char *comment=dogetdata(step, do_string, NULL, "/comment") ;
       logmsg( LOG_INFO, "Macro @%d%s%s%s send message", 
               num+1, comment?" (":"", comment?comment:"", comment?")":"") ;
 
       ccsendmessage(cch, sender, receiver, namespace, message) ;
       num++ ;
 
+
+
     } else if (op && strcmp(op, "test")==0) {
 
+      /////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////
+      //
       // Check variables, and change state if indicated
+      //
+
       int found=0 ;
       char *gotolabel=NULL ;
       char *type=NULL ;
@@ -378,43 +348,113 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
       while (!type && (condition=dochild(donoden(conditions,condindex))) ) {
 
-        char *a = dogetdata(condition, do_string, NULL, "/a") ; // String1
-        char *b = dogetdata(condition, do_string, NULL, "/b") ; // String2
-        char *v = dogetdata(condition, do_string, NULL, "/v") ; // Valid and contains data      
+        long int tih = -1, tim = -1, tis = -1 ;
+        
+        dogetuint(condition, do_uint32, &tih, "/hours") ;             // Hours to sleep      
+        dogetuint(condition, do_uint32, &tih, "/h") ;
 
+        dogetuint(condition, do_uint32, &tim, "/minutes") ;           // Minutes to sleep      
+        dogetuint(condition, do_uint32, &tim, "/m") ;
+
+        dogetuint(condition, do_uint32, &tis, "/seconds") ;           // Seconds to sleep      
+        dogetuint(condition, do_uint32, &tis, "/s") ;
+
+        char *a = dogetdata(condition, do_string, NULL, "/a") ;       // String1
+        int ae = dogetnode(condition, "/a") != NULL ;
+
+        char *b = dogetdata(condition, do_string, NULL, "/b") ;       // String2
+        int be = dogetnode(condition, "/b") != NULL ;
+
+        char *v = dogetdata(condition, do_string, NULL, "/valid") ;   // Valid and contains data   
+        if (!v) v = dogetdata(condition, do_string, NULL, "/v") ; 
+        int ve = dogetnode(condition, "/v") != NULL || dogetnode(condition, "/valid") != NULL ;
+   
         char *g = dogetdata(condition, do_string, NULL, "/goto") ;
         char *e = dogetdata(condition, do_string, NULL, "/else") ;
 
-        // If there is a match, or a does not contain an
-        // unexpanded variable (i.e. it exists) then ...
-
         int match=0 ;
 
-        if (a && b && strcmp(a,b)==0) {
+        if ( tih>=0 || tim>=0 || tis>=0 ) {
 
+          /////////////////////////////////
+          // Pause for specified interval
+
+          if (tih<0) tih=0 ;
+          if (tim<0) tim=0 ;
+          if (tis<0) tis=0 ;
+
+          tis = tis + tim*60 + tih*3600 ;
+
+          if (tis>0 && cch->macrotimer == (time_t)0 ) {
+
+            // First call, so report start and save current time in macrotimer
+
+            char *comment=dogetdata(step, do_string, NULL, "/comment") ;
+            logmsg( LOG_INFO, "Macro @%d%s%s%s starting pause for %ld seconds", 
+                    last+1, comment?" (":"", comment?comment:"", comment?")":"", tis) ;
+            cch->macrotimer = time(NULL) ;
+
+          } else if ( tis==0 || time(NULL) >= (cch->macrotimer + tis) ) {
+
+            // Timeout finished or invalid (zero) value, so report and mark complete
+
+            char *comment=dogetdata(step, do_string, NULL, "/comment") ;
+            logmsg( LOG_INFO, "Macro @%d%s%s%s pause complete", 
+                    last+1, comment?" (":"", comment?comment:"", comment?")":"") ;
+
+            match=1 ;
+            cch->macrotimer=(time_t)0 ;
+
+          }
+
+          // Force script to re-trigger immediately even
+          // if no data traffic event arrives.
+          cch->macroforce=1 ;
+        
+        } else if (ae && be && a && b && strcmp(a,b)==0) {
+
+          /////////////////////////////////
           // A and B Strings match
+
           match=1 ;
 
-        } else if (v && *v!='\0') {
+        } else if (ve && v && *v!='\0') {
 
+          /////////////////////////////////
           // V contains valid data
+
           match=1 ;
 
-        }
+        } else if (!ae && !be && !ve && tis<0 && e) {
 
-        if (!a && !b && !v && e) {
-
+          /////////////////////////////////
           // Just an else, so do it
+
           match=0 ;
 
-        }
+        } else if (!ae && !be && !ve && tis<0 && g) {
 
-        if (!a && !b && !v && g) {
-
+          /////////////////////////////////
           // Just a goto, so do it
+
           match=1 ;
+
+        } else if (!g && !e) {
+
+
+          char *comment=dogetdata(step, do_string, NULL, "/comment") ;
+          logmsg( LOG_INFO, "Macro @%d%s%s%s test condition %d invalid - goto next", 
+                  num+1, comment?" (":"", comment?comment:"", comment?")":"", condindex+1) ;
+
+          gotolabel="next" ;
+          type="goto" ;
+
         }
      
+        /////////////////////////////////
+        // check test results and work
+        // out how to dispatch / goto
+
         if (!match && e) {          
           type="else" ;
           gotolabel=e ;
@@ -430,34 +470,40 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
           gotolabel="next" ;
         }
 
+        char *comment=dogetdata(step, do_string, NULL, "/comment") ;
         logmsg( LOG_INT, "Macro Test: index=%d, a=%s, b=%s, v=%s, e=%s, g=%s, action=%s%s%s",
                 condindex+1, a?a:"", b?b:"", v?v:"", e?e:"", g?g:"", type?type:"",
                 type?" ":"", gotolabel?gotolabel:"") ;
 
+
+        // Move to next condition if no match found
         if (!type) condindex++ ;
 
-      }
+    }
 
-      if (type) {
+    ////////////////////////////////////////////////
+    // Search of all conditions complete - dispatch
 
-        char *comment=dogetdata(step, do_string, NULL, "/comment") ;
-        logmsg( LOG_INFO, "Macro @%d%s%s%s test condition %d triggered - %s %s", 
-                num+1, comment?" (":"", comment?comment:"", comment?")":"",
-                condindex+1, type, gotolabel?gotolabel:"next") ;
+    if (type) {
 
-        if (strcmp(gotolabel, "next")==0) {
+      char *comment=dogetdata(step, do_string, NULL, "/comment") ;
+      logmsg( LOG_INFO, "Macro @%d%s%s%s test condition %d triggered - %s %s", 
+              num+1, comment?" (":"", comment?comment:"", comment?")":"",
+              condindex+1, type, gotolabel?gotolabel:"next") ;
 
-          // Go to next entry
-          num++ ;
-          found=1 ;
+      if (strcmp(gotolabel, "next")==0) {
 
-        } else {
+        // Go to next entry
+        num++ ;
+        found=1 ;
 
-          // Search for 'goto' entry
+      } else {
 
-          int j=0 ;
-          int found=0 ;
-          DATAOBJECT *search ;
+        // Search for 'goto' entry
+
+        int j=0 ;
+        int found=0 ;
+        DATAOBJECT *search ;
           DATAOBJECT *scriptlist = dochild(dofindnode(cch->macro, "/script")) ;
           while (!found && (search=dochild(donoden(scriptlist, j))) ) {
             char *label = dogetdata(search, do_string, NULL, "/label") ;
@@ -469,6 +515,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
           }
 
           if (!found) {
+            char *comment=dogetdata(step, do_string, NULL, "/comment") ;
             logmsg( LOG_ERR, "Macro @%d - test condition %d - invalid GOTO label, aborting", 
                     last+1, condindex+1) ;
             num=-1 ;
@@ -478,18 +525,23 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
       }
 
+
+
     } else if (op && strcmp(op, "respond")==0) {
+
+      /////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////
+      //
+      // Sequence "respond" Identified, send response
+      //
 
       DATAOBJECT *respond = dochild(dofindnode(step, "/response"));
 
       if (respond) {
 
-        // Sequence "respond" Identified, send response
-
         if (httpsh && !responsemessagesent) {
   
           char *comment=dogetdata(step, do_string, NULL, "/comment") ;
-
           logmsg( LOG_INFO, "Macro @%d%s%s%s sending http response", 
                   last+1, comment?" (":"", comment?comment:"", comment?")":"") ;
 
@@ -504,7 +556,6 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
        } else {
 
           char *comment=dogetdata(step, do_string, NULL, "/comment") ;
-
           logmsg( LOG_INFO, "Macro @%d%s%s%s not sending http response%s%s", 
                   last+1, comment?" (":"", comment?comment:"", comment?")":"",
                   httpsh?"":" - http session not active",
@@ -516,27 +567,38 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
      } else {
 
+        char *comment=dogetdata(step, do_string, NULL, "/comment") ;
         logmsg( LOG_ERR, "Macro @%d - missing response, aborting", last+1) ;
         num=-1 ;
 
      }
 
+
+
     } else if (!op) {
 
+      /////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////
+      //
       // No Opcode
+      //
 
       char *comment=dogetdata(step, do_string, NULL, "/comment") ;
-
       logmsg( LOG_INFO, "Macro @%d%s%s%s no opcode - skipping to next", 
               last+1, comment?" (":"", comment?comment:"", comment?")":"") ;
        num++ ;
 
+
+
     } else {
 
+      /////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////
+      //
       // Invalid op 
+      //
 
       char *comment=dogetdata(step, do_string, NULL, "/comment") ;
-
       logmsg( LOG_ERR, "Macro @%d%s%s%s - bad or missing 'op', aborting", 
               last+1, comment?" (":"", comment?comment:"", comment?")":"") ;
       num=-1 ;
@@ -547,14 +609,20 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
     if (loopcount==1) {
 
+      ////////////////////////////////////////////////
       // Probably stuck in a loop, so bail  
  
+      char *comment=dogetdata(step, do_string, NULL, "/comment") ;
       logmsg( LOG_ERR, "Macro @%d - probable infinate loop, aborting", last+1) ;
       num=-1 ;
 
     }
 
-    if (!op || (strcmp(op, "pause")!=0 && strcmp(op, "test")!=0) ) {
+    if (!op || strcmp(op, "test")!=0 ) {
+
+
+      ////////////////////////////////////////////////
+      // Check for "end": true
 
       unsigned long int endflag=0 ;
       dogetuint(step, do_bool, &endflag, "/end") ;
@@ -567,6 +635,13 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
     dodelete(step) ;
    
   }
+
+
+  ////////////////////////////////////////////////
+  ////////////////////////////////////////////////
+  //
+  // Update macro index tidy up and return
+  //
 
   cch->macroindex=num+1 ;
 
