@@ -598,7 +598,30 @@ int _cc_processinputmessage(CHROMECAST *cch)
     dosetdata(cch->vars, do_string, "lastMessageType", 15, "/lastMessageType/variable") ;
   }
 
+  // Clear relevant variables
+
+  varindex=0 ;
+
+  if (msgnamespace && msgtype) while ( var = dochild(donoden(cch->vars, varindex)) ) {
+
+    // Get the variable details
+
+    char *varnamespace = dogetdata(var, do_string, NULL, "/namespace") ;
+    char *vartype = dogetdata(var, do_string, NULL, "/type") ;
+
+    if (varnamespace && vartype && strcmp(msgnamespace,varnamespace)==0 && strcmp(msgtype, vartype)==0) {
+
+      dosetdata(var, do_string, "", 0, "/value") ;
+
+    }
+
+    varindex++ ;
+
+  }
+
   // Walk through each variable node
+
+  varindex=0 ;
 
   if (msgnamespace && msgtype) while ( var = dochild(donoden(cch->vars, varindex)) ) {
 
