@@ -16,10 +16,20 @@
      {
          "comment": "20 Ensure required variables are watched",
          "op": "addwatch",
-         "variable": "sessionId",
+         "variable": "appId",
          "namespace": "urn:x-cast:com.google.cast.receiver",
          "type": "RECEIVER_STATUS",
-         "path": "/message/status/applications/0/sessionId",
+         "path": "/message/status/applications/0/appId",
+
+     },
+
+     {
+         "comment": "21 Ensure required variables are watched",
+         "op": "addwatch",
+         "variable": "playerState",
+         "namespace": "urn:x-cast:com.google.cast.media",
+         "type": "MEDIA_STATUS",
+         "path": "/message/status/0/playerState",
 
      },
 

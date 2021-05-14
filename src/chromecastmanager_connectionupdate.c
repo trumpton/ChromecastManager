@@ -51,7 +51,7 @@ int chromecast_device_connection_update(CHROMECAST **cclist, int maxcc)
           ccdelete(cclist[i]) ;
           cclist[i]=NULL ;
         } else {
-          logmsg( LOG_NOTICE, "Establishing connection to %s chromecast at %s:%d", 
+          logmsg( LOG_NOTICE, "Establishing sender-0 / receiver-0 connection to %s chromecast at %s:%d", 
                   friendlyname?friendlyname:"unknown", ipaddress, port ) ;
 
           ccsendconnectionmessage(cclist[i], "CONNECT") ;

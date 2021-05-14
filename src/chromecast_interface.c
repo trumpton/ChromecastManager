@@ -92,6 +92,7 @@ CHROMECAST *ccnew()
               "RECEIVER_STATUS",
               "/message/status/applications/0/sessionId") ;
 
+/*
   ccaddwatch( cch, "appId",
               "urn:x-cast:com.google.cast.receiver", 
               "RECEIVER_STATUS",
@@ -111,6 +112,7 @@ CHROMECAST *ccnew()
               "urn:x-cast:com.google.cast.media", 
               "MEDIA_STATUS",
               "/message/status/0/mediaSessionId") ;
+*/
 
   return cch ;
 }
@@ -598,6 +600,8 @@ int _cc_processinputmessage(CHROMECAST *cch)
     dosetdata(cch->vars, do_string, "lastMessageType", 15, "/lastMessageType/variable") ;
   }
 
+
+/*
   // Clear relevant variables
 
   varindex=0 ;
@@ -618,6 +622,8 @@ int _cc_processinputmessage(CHROMECAST *cch)
     varindex++ ;
 
   }
+*/
+
 
   // Walk through each variable node
 
@@ -628,16 +634,18 @@ int _cc_processinputmessage(CHROMECAST *cch)
     // Get the variable details
 
     char *variable = dogetdata(var, do_string, NULL, "/variable") ;
+    char *value = dogetdata(var, do_string, NULL, "/value") ;
     char *varnamespace = dogetdata(var, do_string, NULL, "/namespace") ;
     char *vartype = dogetdata(var, do_string, NULL, "/type") ;
     char *varpath = dogetdata(var, do_string, NULL, "/path") ;
 
     if (varnamespace && vartype && varpath) {
 
-      // Test namespace and message types match
+      // If SessionId has just changed, establish a connection
 
       if ( strcmp(varnamespace, msgnamespace)==0 &&
            ( strcmp(vartype, msgtype)==0 || strcmp("*", msgtype)==0 ) ) {
+
 
         // Extract the data and convert to a string
    
@@ -665,6 +673,28 @@ int _cc_processinputmessage(CHROMECAST *cch)
             snprintf(buf,sizeof(buf),"%ld",i) ;
             msgvalue=buf ;
             break ;
+          }
+
+
+          // If the variable is the sessionId, then establish a session-0 connection
+
+          if ( strcmp(variable, "sessionId")==0 && 
+               (!value || strcmp(value, msgvalue)!=0) ) {
+
+            if ( ccsendmessage( cch, "session-0", msgvalue, 
+                 CC_NAMESPACE_CONNECTION, "{\"type\":\"CONNECT\"}") ) {
+
+              ccsendmessage( cch, "session-0", msgvalue,
+                             CC_NAMESPACE_MEDIA, 
+                             "{\"type\":\"GET_STATUS\",\"requestId\":%d}", 
+                             (++cch->requestid) ) ;
+
+              logmsg( LOG_INFO, "Establishing session-0 / %s connection to chromecast at %s:%d",
+                      msgvalue,
+                      ccipaddress(cch), ccpeerport(cch) ) ;
+
+            }
+
           }
 
           // Store the string as a variable
