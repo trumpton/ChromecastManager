@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
   httpd_init(httpdport) ;
   int httpdfd = httpd_listenfd() ;
   if (httpdfd < 0) {
-    logmsg(LOG_CRIT, "Unable to setup httpd server on port %d", httpdport) ;
+    logmsg(LOG_CRIT, "Unable to setup HTTP server on port %d", httpdport) ;
     goto fail ;
   }
   logmsg(LOG_NOTICE, "HTTP server listening on port %d", httpdport) ;
@@ -323,8 +323,8 @@ int main(int argc, char *argv[])
 
       if (thishc>=0) {
         httpsh[thishc] = haccept(httpdfd) ;
-        logmsg( LOG_DEBUG, "Connection established from %s:%d",
-              hpeeripaddress(httpsh[thishc]), hpeerport(httpsh[thishc]) ) ;
+        logmsg( LOG_DEBUG, "HTTP session %d connection established from %s:%d",
+              thishc+1, hpeeripaddress(httpsh[thishc]), hpeerport(httpsh[thishc]) ) ;
       }
 
     }
@@ -343,8 +343,8 @@ int main(int argc, char *argv[])
         int timeout = hqi[hc]>=0 ? 5 : 2 ;
 
         if (httpsh[hc] && hfd(httpsh[hc])>0 && hconnectiontime(httpsh[hc]) > timeout ) {
-          logmsg( LOG_DEBUG, "Connection timed out (%s:%d )", 
-                  hpeeripaddress(httpsh[hc]), hpeerport(httpsh[hc])) ;
+          logmsg( LOG_DEBUG, "HTTP session %d connection timed out (%s:%d )", 
+                  hc+1, hpeeripaddress(httpsh[hc]), hpeerport(httpsh[hc])) ;
           hclose(httpsh[hc]) ;
           httpsh[hc]=NULL ;
           hqi[hc]=-1 ;
@@ -368,8 +368,8 @@ int main(int argc, char *argv[])
 
               // Connection closed
 
-              logmsg(LOG_DEBUG, "Connection closed (%s:%d)",
-                  hpeeripaddress(httpsh[hc]), hpeerport(httpsh[hc])) ;
+              logmsg(LOG_DEBUG, "HTTP session %d connection closed (%s:%d)",
+                  hc+1, hpeeripaddress(httpsh[hc]), hpeerport(httpsh[hc])) ;
               hclose(httpsh[hc]) ;
               httpsh[hc]=NULL ;
               hqi[hc]=-1 ;
@@ -416,7 +416,8 @@ int main(int argc, char *argv[])
         case -1:
 
           // Connection closed / error
-          logmsg(LOG_NOTICE, "Chromecast %s:%d connection closed", ccipaddress(cch[i]), ccpeerport(cch[i]) ) ;
+          logmsg( LOG_NOTICE, "Chromecast %d at %s:%d - connection closed", 
+                  i+1, ccipaddress(cch[i]), ccpeerport(cch[i]) ) ;
           ccdelete(cch[i]) ;
           cch[i]=NULL ;
           break ;
@@ -484,13 +485,15 @@ int main(int argc, char *argv[])
 
         } else if ( cch[i] && ccpingssent(cch[i])==1 && ( ccidletime(cch[i]) > 420 ) ) {
 
-          logmsg( LOG_DEBUG, "Sending final ping to %s:%d", ccipaddress(cch[i]), ccpeerport(cch[i])) ;
+          logmsg( LOG_DEBUG, "Sending final ping to Chromecast %d at %s:%d", i+1,
+                  ccipaddress(cch[i]), ccpeerport(cch[i])) ;
+
           ccsendheartbeatmessage(cch[i], "PING") ;
 
         } else if ( cch[i] && ( ccidletime(cch[i]) > 480 ) ) {
 
-          logmsg( LOG_NOTICE, "Disconnecting non-responsive chromecast device at %s:%d",
-                  ccipaddress(cch[i]), ccpeerport(cch[i])) ;
+          logmsg( LOG_NOTICE, "Disconnecting non-responsive Chromecast %d at %s:%d",
+                  i+1, ccipaddress(cch[i]), ccpeerport(cch[i])) ;
           ccdelete(cch[i]) ;
           cch[i]=NULL ;
 
