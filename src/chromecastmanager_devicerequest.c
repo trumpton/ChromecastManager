@@ -94,7 +94,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
     hsendb(httpsh, 200, mediatype, file, len) ;
     index=-1 ;
 
-    logmsg(LOG_NOTICE, "Received request: %s from %s:%d - returning scripts%s.json", 
+    logmsg(LOG_INFO, "Received request: %s from %s:%d - returning script %s.json", 
                      uri, 
                      hpeeripaddress(httpsh), hpeerport(httpsh),
                      uri) ;
@@ -107,7 +107,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
     chromecast_device_request_process_serverinfo(httpsh) ;
     index=-1 ;
 
-    logmsg(LOG_NOTICE, "Received request: %s from %s:%d - returning media list", 
+    logmsg(LOG_INFO, "Received request: %s from %s:%d - returning media list", 
                      uri, 
                      hpeeripaddress(httpsh), hpeerport(httpsh)) ;
 
@@ -119,7 +119,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
     chromecast_device_request_process_devicelist(httpsh, cclist, maxcc) ;
     index=-1 ;
 
-    logmsg(LOG_NOTICE, "Received request: %s from %s:%d - returning device list", 
+    logmsg(LOG_INFO, "Received request: %s from %s:%d - returning device list", 
                      uri, 
                      hpeeripaddress(httpsh), hpeerport(httpsh)) ;
 
@@ -138,7 +138,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
     hsend(httpsh, 404, "text/html", "/404.html") ;
     index=-1 ;
 
-    logmsg(LOG_NOTICE, "Received request: %s from %s:%d - returning 404, file not found", 
+    logmsg(LOG_INFO, "Received request: %s from %s:%d - returning 404, file not found", 
                      uri, 
                      hpeeripaddress(httpsh), hpeerport(httpsh)) ;
 
@@ -154,7 +154,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
 
     logmsg(LOG_NOTICE, "Received request: %s from %s:%d - device '%s' not found", 
                        uri, hpeeripaddress(httpsh), hpeerport(httpsh),
-                     device?device:"undefined") ;
+                       (device && *device!='\0')?device:"undefined") ;
 
   } else if (strcmp(uri, "/jsonquery")==0) {
 
@@ -165,7 +165,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
       index=-1 ;
     }
 
-    logmsg(LOG_NOTICE, "Received request: %s from %s:%d - json query", 
+    logmsg(LOG_INFO, "Received request: %s from %s:%d - json query", 
                        uri, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
 
 
@@ -184,7 +184,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
 
     } else if (chromecast_macro_load(httpsh, cclist[index], json)) {
 
-      logmsg(LOG_NOTICE, "Received request: %s from %s:%d - json script", 
+      logmsg(LOG_INFO, "Received request: %s from %s:%d - json script", 
                        uri, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
 
     } else {
@@ -212,7 +212,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
 
     } else if (chromecast_macro_load(httpsh, cclist[index], json)) {
 
-      logmsg(LOG_NOTICE, "Received request: %s from %s:%d - json script", 
+      logmsg(LOG_INFO, "Received request: %s from %s:%d - json script", 
                        uri, 
                        hpeeripaddress(httpsh), hpeerport(httpsh)) ;
 

@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
 
       if (thishc>=0) {
         httpsh[thishc] = haccept(httpdfd) ;
-        logmsg( LOG_DEBUG, "HTTP session %d connection established from %s:%d",
+        logmsg( LOG_INFO, "HTTP session %d connection established from %s:%d",
               thishc+1, hpeeripaddress(httpsh[thishc]), hpeerport(httpsh[thishc]) ) ;
       }
 
@@ -343,7 +343,7 @@ int main(int argc, char *argv[])
         int timeout = hqi[hc]>=0 ? 5 : 2 ;
 
         if (httpsh[hc] && hfd(httpsh[hc])>0 && hconnectiontime(httpsh[hc]) > timeout ) {
-          logmsg( LOG_DEBUG, "HTTP session %d connection timed out (%s:%d )", 
+          logmsg( LOG_INFO, "HTTP session %d connection timed out (%s:%d )", 
                   hc+1, hpeeripaddress(httpsh[hc]), hpeerport(httpsh[hc])) ;
           hclose(httpsh[hc]) ;
           httpsh[hc]=NULL ;
@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
 
               // Connection closed
 
-              logmsg(LOG_DEBUG, "HTTP session %d connection closed (%s:%d)",
+              logmsg(LOG_INFO, "HTTP session %d connection closed (%s:%d)",
                   hc+1, hpeeripaddress(httpsh[hc]), hpeerport(httpsh[hc])) ;
               hclose(httpsh[hc]) ;
               httpsh[hc]=NULL ;
@@ -416,7 +416,7 @@ int main(int argc, char *argv[])
         case -1:
 
           // Connection closed
-          logmsg( LOG_NOTICE, "Chromecast %d at %s:%d - connection closed by peer", 
+          logmsg( LOG_INFO, "Chromecast %d at %s:%d - connection closed by peer", 
                   i+1, ccipaddress(cch[i]), ccpeerport(cch[i]) ) ;
           ccdisconnect(cch[i]) ;
           ccdelete(cch[i]) ;
@@ -426,7 +426,7 @@ int main(int argc, char *argv[])
         case -2:
 
           // Connection error
-          logmsg( LOG_NOTICE, "Chromecast %d at %s:%d - connection terminated", 
+          logmsg( LOG_INFO, "Chromecast %d at %s:%d - connection terminated", 
                   i+1, ccipaddress(cch[i]), ccpeerport(cch[i]) ) ;
           ccdisconnect(cch[i]) ;
           ccdelete(cch[i]) ;
@@ -494,11 +494,13 @@ int main(int argc, char *argv[])
 
           logmsg( LOG_NOTICE, "Disconnecting non-responsive Chromecast %d at %s:%d",
                   i+1, ccipaddress(cch[i]), ccpeerport(cch[i])) ;
+          ccdisconnect(cch[i]) ;
           ccdelete(cch[i]) ;
           cch[i]=NULL ;
 
-        } else if ( cch[i] && ( ccidletime(cch[i]) > 30 ) ) {
+        } else if ( cch[i] && ( ccidletime(cch[i]) > (240 + ccpingssent(cch[i]) * 60)  ) ) {
 
+          // Send ping after 240 seconds, then every 60 seconds
           ccsendheartbeatmessage(cch[i], "PING") ;
 
         }
