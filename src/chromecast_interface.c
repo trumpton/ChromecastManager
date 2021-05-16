@@ -905,6 +905,10 @@ int ccsendmessage(CHROMECAST *cch, char *sender, char *receiver, char *namespace
   int r1 = netsend(cch->ssl, lengthst, 4) ;
   int r2 = netsend(cch->ssl, protobuf, len) ;
 
+  if (r1!=4 || r2!=len) {
+    logmsg( LOG_INT, "netsend returned %d / %d", r1, r2) ;
+  }
+
   // Rename sendobject fields to be more useful
 
   dosettype(cch->sendobject, do_string, "/f1") ; dorenamenode(cch->sendobject, "/f1", "version") ;
