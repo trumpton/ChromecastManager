@@ -481,10 +481,10 @@ int main(int argc, char *argv[])
 
 
     /////////////////////////////////////////////////////
-    // Check and ping
+    // Check and ping (check every 10 seconds)
 
 
-    if (!exit_requested && time(NULL) > (pingchecktime+30) ) {
+    if (!exit_requested && time(NULL) > (pingchecktime+10) ) {
 
       pingchecktime = time(NULL) ;
 
@@ -497,10 +497,9 @@ int main(int argc, char *argv[])
           ccdelete(cch[i]) ;
           cch[i]=NULL ;
 
-        } else if ( cch[i] && ( ccidletime(cch[i]) > 60 ) ) {
+        } else if ( cch[i] && ( ccidletime(cch[i]) > 30 ) ) {
 
           ccsendheartbeatmessage(cch[i], "PING") ;
-          ccsendreceivermessage(cch[i], "GET_STATUS") ;
 
         }
 
