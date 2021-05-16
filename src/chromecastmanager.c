@@ -490,23 +490,17 @@ int main(int argc, char *argv[])
 
       for (int i=0; i<maxcc; i++) {
 
-        if ( cch[i] && ccpingssent(cch[i])==0 && ( ccidletime(cch[i]) > 300 ) ) {
-
-          ccsendheartbeatmessage(cch[i], "PING") ;
-
-        } else if ( cch[i] && ccpingssent(cch[i])==1 && ( ccidletime(cch[i]) > 420 ) ) {
-
-          logmsg( LOG_DEBUG, "Sending final ping to Chromecast %d at %s:%d", i+1,
-                  ccipaddress(cch[i]), ccpeerport(cch[i])) ;
-
-          ccsendheartbeatmessage(cch[i], "PING") ;
-
-        } else if ( cch[i] && ( ccidletime(cch[i]) > 480 ) ) {
+        if ( cch[i] && ( ccidletime(cch[i]) > 480 ) ) {
 
           logmsg( LOG_NOTICE, "Disconnecting non-responsive Chromecast %d at %s:%d",
                   i+1, ccipaddress(cch[i]), ccpeerport(cch[i])) ;
           ccdelete(cch[i]) ;
           cch[i]=NULL ;
+
+        } else if ( cch[i] && ( ccidletime(cch[i]) > 60 ) ) {
+
+          ccsendheartbeatmessage(cch[i], "PING") ;
+          ccsendreceivermessage(cch[i], "GET_STATUS") ;
 
         }
 
