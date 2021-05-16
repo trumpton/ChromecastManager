@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
   }
 
   logopen("chromecast") ;
-  logsetlevel(loglevel?loglevel:"info") ;
+  logsetlevel(loglevel?loglevel:"notice") ;
   logmsg(LOG_NOTICE, "server started") ;
 
   if (getenv("SSLKEYLOGFILE")) 
