@@ -79,9 +79,15 @@ void sighupHandler(int sig_num) {
 }
 
 // SIGPIPE handler needed for valgrind
+// In some cases, the app will attempt to ccsendmessage
+// or ccsendheartbeat without checking for success.  These
+// generate a sigpipe if the peer has closed the connection
+// This is acceptable as the main loop ping will close the
+// connections down when it does its checks.
+
 void sigpipeHandler(int sig_num) {
   signal(SIGPIPE, sigpipeHandler);
-  logmsg(LOG_NOTICE, "sigpipe received - ignoring") ;
+  logmsg(LOG_DEBUG, "sigpipe received - ignoring") ;
 }
 
 void setfdsetdbgstr(char *str, int reset, char *template, ...) ;
@@ -92,6 +98,10 @@ void setfdsetdbgstr(char *str, int reset, char *template, ...) ;
 
 char *_scriptfolder ;
 char *getscriptfolder() { return _scriptfolder ; }
+
+#ifndef PINGTIME
+#define PINGTIME 240
+#endif
 
 #define MAXHT 2
 
@@ -402,7 +412,8 @@ int main(int argc, char *argv[])
 
     if (!exit_requested) for (int i=0; i<maxcc; i++) {
 
-      if (ccrdfdisset(cch[i], &rfds, &wfds)) {
+      CHROMECAST *cc = cch[i] ;
+      if (ccrdfdisset(cc, &rfds, &wfds)) {
 
         // Responses from device
 
@@ -490,18 +501,28 @@ int main(int argc, char *argv[])
 
       for (int i=0; i<maxcc; i++) {
 
-        if ( cch[i] && ( ccidletime(cch[i]) > 480 ) ) {
+        CHROMECAST *cc = cch[i] ;
 
-          logmsg( LOG_NOTICE, "Disconnecting non-responsive Chromecast %d at %s:%d",
+        if ( cch[i] && ( ccidletime(cch[i]) > PINGTIME*2 ) ) {
+
+          logmsg( LOG_NOTICE, "Disconnecting Chromecast %d at %s:%d - timeout waiting for response to ping",
                   i+1, ccipaddress(cch[i]), ccpeerport(cch[i])) ;
           ccdisconnect(cch[i]) ;
           ccdelete(cch[i]) ;
           cch[i]=NULL ;
 
-        } else if ( cch[i] && ( ccidletime(cch[i]) > (240 + ccpingssent(cch[i]) * 60)  ) ) {
+        } else if ( cch[i] && ( ccidletime(cch[i]) > (PINGTIME + ccpingssent(cch[i]) * 60)) ) {
 
-          // Send ping after 240 seconds, then every 60 seconds
-          ccsendheartbeatmessage(cch[i], "PING") ;
+          // Send ping after PINGTIME seconds, then every 60 seconds
+          if (!ccsendheartbeatmessage(cch[i], "PING")) {
+
+            logmsg( LOG_NOTICE, "Disconnecting Chromecast %d at %s:%d - problems communicating with device",
+                    i+1, ccipaddress(cch[i]), ccpeerport(cch[i])) ;
+            ccdisconnect(cch[i]) ;
+            ccdelete(cch[i]) ;
+            cch[i]=NULL ;
+
+          }
 
         }
 
