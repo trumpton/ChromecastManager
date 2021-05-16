@@ -349,8 +349,9 @@ int ccrecv(CHROMECAST *cch)
       if (!cch->recvbuf) cch->recvbuf=malloc(4) ;
       if (!cch->recvbuf) goto fail ;
       l = netrecv(cch->ssl, &(cch->recvbuf[(cch->recvlen)]), 4 - cch->recvlen ) ;
-      if (l<0) goto fail ;
-      if (l==0) goto fail ;
+      if (l<=0) {
+        goto fail ;
+      }
       cch->recvlen+=l ;
 
       if (cch->recvlen>=4) {
@@ -375,8 +376,9 @@ int ccrecv(CHROMECAST *cch)
     case REC_BODY:
 
       l = netrecv(cch->ssl, &(cch->recvbuf[cch->recvlen]), cch->recvsize - cch->recvlen ) ;
-      if (l<0) goto fail ;
-      if (l==0) goto fail ;
+      if (l<=0) {
+        goto fail ;
+      }
       cch->recvlen += l ;
       if (cch->recvlen == cch->recvsize) {
         cch->recvstate = REC_DONE ;

@@ -23,6 +23,13 @@ debug: submodules libs-dbg ${EXECUTABLE}-dbg
 
 all: std debug
 
+rund: debug
+	nemiver ./chromecast-dbg
+
+
+runv: debug
+	valgrind ./chromecast-dbg ../conf info
+
 submodules: libnet/Makefile libdataobject/Makefile libtools/Makefile
 
 clean: 
