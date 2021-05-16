@@ -315,8 +315,9 @@ int ccgetflag(CHROMECAST *cch)
 //
 // @brief Process input
 // @param(in) cch Handle of chromecast device
-// @return 0 if processing does not require attention
-// @return -1 if connection is closed
+// @return 0 if processing does not require attention yet
+// @return -1 if connection is closed by peer
+// @return -2 if connection error occurred
 // @return >1 if processing complete and an input is ready (use ccgetcmd)
 //
 
@@ -349,7 +350,10 @@ int ccrecv(CHROMECAST *cch)
       if (!cch->recvbuf) cch->recvbuf=malloc(4) ;
       if (!cch->recvbuf) goto fail ;
       l = netrecv(cch->ssl, &(cch->recvbuf[(cch->recvlen)]), 4 - cch->recvlen ) ;
-      if (l<=0) {
+      if (l==0) {
+        goto peerclose ;
+      }
+      if (l<0) {
         goto fail ;
       }
       cch->recvlen+=l ;
@@ -376,7 +380,10 @@ int ccrecv(CHROMECAST *cch)
     case REC_BODY:
 
       l = netrecv(cch->ssl, &(cch->recvbuf[cch->recvlen]), cch->recvsize - cch->recvlen ) ;
-      if (l<=0) {
+      if (l==0) {
+        goto peerclose ;
+      }
+      if (l<0) {
         goto fail ;
       }
       cch->recvlen += l ;
@@ -398,9 +405,11 @@ int ccrecv(CHROMECAST *cch)
 
   return 0 ;
 
-fail:
-  ccdisconnect(cch) ;
+peerclose:
   return -1 ;
+
+fail:
+  return -2 ;
 
 }
 

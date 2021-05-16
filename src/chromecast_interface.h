@@ -223,12 +223,14 @@ int ccgetflag(CHROMECAST *cch) ;
 char *ccipaddress(CHROMECAST *cch) ;
 int ccpeerport(CHROMECAST *cch) ;
 
+
 //////////////////////////////////////////////////////////////////////////
 //
 // @brief Process input
 // @param(in) cch Handle of chromecast device
-// @return 0 if processing does not require attention
-// @return -1 if connection is closed
+// @return 0 if processing does not require attention yet
+// @return -1 if connection is closed by peer
+// @return -2 if connection error occurred
 // @return >1 if processing complete and an input is ready (use ccgetcmd)
 //
 

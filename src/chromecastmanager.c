@@ -415,9 +415,20 @@ int main(int argc, char *argv[])
 
         case -1:
 
-          // Connection closed / error
-          logmsg( LOG_NOTICE, "Chromecast %d at %s:%d - connection closed", 
+          // Connection closed
+          logmsg( LOG_NOTICE, "Chromecast %d at %s:%d - connection closed by peer", 
                   i+1, ccipaddress(cch[i]), ccpeerport(cch[i]) ) ;
+          ccdisconnect(cch[i]) ;
+          ccdelete(cch[i]) ;
+          cch[i]=NULL ;
+          break ;
+
+        case -2:
+
+          // Connection error
+          logmsg( LOG_NOTICE, "Chromecast %d at %s:%d - connection terminated", 
+                  i+1, ccipaddress(cch[i]), ccpeerport(cch[i]) ) ;
+          ccdisconnect(cch[i]) ;
           ccdelete(cch[i]) ;
           cch[i]=NULL ;
           break ;
