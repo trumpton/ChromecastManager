@@ -24,11 +24,11 @@ debug: submodules libs-dbg ${EXECUTABLE}-dbg
 all: std debug
 
 rund: debug
-	nemiver ./chromecast-dbg
+	nemiver ./chromecastmanager-dbg ../conf internal
 
 
 runv: debug
-	valgrind ./chromecast-dbg ../conf info
+	valgrind ./chromecastmanager-dbg ../conf info
 
 submodules: libnet/Makefile libdataobject/Makefile libtools/Makefile
 
