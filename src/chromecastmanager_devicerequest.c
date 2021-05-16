@@ -254,7 +254,7 @@ int chromecast_device_request_process_devicelist(HTTPD *httpsh, CHROMECAST **ccl
 
     chromecast_mdns_record *e = chromecast_mdns_at(i) ;
 
-    if (e->friendlyname) {
+    if (e->friendlyname && cclist[i]) {
 
       numdevices++ ;
       if ((outputcount++)>0) { strcat(buf, ",\n") ; }
