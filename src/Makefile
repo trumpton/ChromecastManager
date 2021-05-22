@@ -28,7 +28,7 @@ rund: debug
 
 
 runv: debug
-	valgrind ./chromecastmanager-dbg ../conf info
+	valgrind -s --leak-check=full ./chromecastmanager-dbg ../conf info
 
 submodules: libnet/Makefile libdataobject/Makefile libtools/Makefile
 
