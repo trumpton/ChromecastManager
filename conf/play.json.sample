@@ -1,5 +1,6 @@
 {
-  "script": [
+  "preprocess": "./playpp.pl",
+  "steps": [
 
      {
          "comment": "10 Check supplied parameters",

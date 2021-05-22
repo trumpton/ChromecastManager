@@ -42,7 +42,7 @@ Guide Dogs for the Blind</a> - your support is very much appreciated</p>
 <div class="helpsection" style="display:none" id="launching">
 
 <p>Usage: chromecastmanager configuration_folder [ portnum ] [ loglevel ]</p>
-<p><b>configurationfolder</b>: Location of the json macro scripts (usually /etc/chromecastmanager)</p>
+<p><b>configurationfolder</b>: Location of the json macro and preprocessing scripts (usually /etc/chromecastmanager)</p>
 <p><b>portnum</b>: Number of port to bind to for the http server</p>
 <p><b>loglevel</b>: Optional log level: debug, info, notice (default), error, warn, crit</p>
 
@@ -122,7 +122,7 @@ syslog</p>
 <li>For each device (these can be seen in the /deviceinfo report).</li></ul>
 <p>Only the <b>$(sessionId)</b>, <b>$(lastMessageNamespace)</b> and 
 <b>$(lastMessageType)</b> variables are pre-defined for chromecast devices.  
-All other variables must be added in a script if required (see addwatch macro step description below).</p>
+All other variables must be added in a macro script if required (see addwatch macro step description below).</p>
 
 <b>Variable Updating</b>
 
@@ -170,8 +170,7 @@ from the configuration folder.  String variables are expanded when each step is 
 <p>Arguments: none</p>
 <p>Action: accesses the Test Playground</p>
 <p>The test playground provides access to send discrete messages to chromecast devices
-through /jsonquery, and submit and test entire scripts through /jsonscript.  It also 
-provides easy access to the other functions sich as /devicelist etc.</p>
+through /jsonquery.  It also provides easy access to the other functions such as /devicelist etc.</p>
 
 <p class="subtitle"><b><a href="/devicelist" target="dl">/devicelist</a></b></p>
 <p>Arguments: none</p>
@@ -280,6 +279,9 @@ with these devices.</p>
 <p>Action: Run a macro 'script'.</p>
 <p>The scripts are written in json, and are user configurable.  They are parsed
 at runtime, so can be updated without stopping and re-starting the server.</p>
+<p>The json scripts can also run a preprocessor script, which can be used to
+alter the format of the incoming json - e.g. interpret "beatles collection on kitchen speaker" to
+"device": "kitchen speaker", "url": "http://192.168.1.2/stream/2"</p>
 <p>Use the <a href="/serverinfo" target="sinfo">/serverinfo</a> link to see the 
 scripts that are available for use</p>
 <p>Script parameters can either be passed in the query string in a GET request,
@@ -345,12 +347,15 @@ GET /play?device=Kitchen%2FSpeaker&volume=0.1&url=http%3A%2F%2Flive.stream.com%2
 <p>Macro scripts are written in json format, and store in the configuration folder (this folder
 is identified on the command line when the server is launched)</p>
 
-<p>The script contains a sequence of steps in the following format:</p>
+<p>The script contains a sequence of steps, and is in the following format:</p>
 
 <div class="comment">
 <pre>
 {
-  "script": [
+
+  "preprocess": "preprocess_script",
+
+  "steps": [
 
     { ... },
     { ... }
@@ -360,17 +365,27 @@ is identified on the command line when the server is launched)</p>
 </pre>
 </div>
 
-<p>When launched, the query parameters and any variables identified in a POST json body
-are set / stored.  The <b>device</b> variable is used to identify the chromecast device
-on which the script is to be run.</b>
-<p>The script runs through each of the steps, sending commands to the chromecast device,
+p>When launched, the query parameters and any variables identified in a POST json body
+are used to guide the macro script.</p>
+
+<p>Before the macro steps are executed, and optional pre-process script can be run.  This
+script takes the input json request via stdin, and outputs an updated json request via
+stdout.  Note that this takes place before any variable expansion.</p>
+<p>Example: "preprocess": "languageparse.pl \"$(serverIpAddress)\" \"$(serverPort)""</p>
+<p>Any output from the preprocessing script to stderr is passed as a notice to the syslog.</p>
+<p>The preprocessing script must return 0 on success.  Any other error halts execution of the macro.</p>
+
+<p>The mandatory <b>device</b> variable is used to identify the chromecast device on which 
+the macro script is to be run.</b>
+ 
+<p>The json macro then runs through each of the steps, sending commands to the chromecast device,
 monitoring status and responding to the http client.</p>
-<p>The script opcodes are detailed below:</p>
+<p>The json macro script opcodes are detailed below:</p>
 
 <h3>Add Watch opcode</h3>
 <p>By default, the chromecastmanager adds watches for <b>lastMessageNamespace</b>, <b>lastMessageType</b>, and
 <b>sessionId</b>.</p>
-<p>Additional watches may be added by the script using the addwatch op-code</p>
+<p>Additional watches may be added by the step using the addwatch op-code</p>
 
 <p><b>label</b> - Optional step label, used for 'goto' and 'else' destinations</p>
 <p><b>comment</b> - Optional comment - reported in logs</p>
@@ -440,7 +455,7 @@ to ensure that the variable contains the latest information.</p>
 <h3>Test opcode</h3>
 
 <p>The test opcode allows various watched parameters to be tested
-and the script flow changed depending on the oucome of the test.  Note that
+and the macro script flow changed depending on the oucome of the test.  Note that
 tests are performed in sequence, and it is the first successful test is actioned.</p>
 <p>In addition, it also supports a programmable pause with hours, minutes
 and seconds optionally provided</p>
@@ -523,7 +538,7 @@ http client which raised the request.  Note that the connection automatically
 times out after 10 seconds, so any responses must be provided before then.</p>
 <p>Note also that it is acceptable to continue processing after a response has 
 been sent, e.g. load, respond, sleep,  stop</p>
-<p>Note also that only the first response encountered in the script is provided.
+<p>Note also that only the first response encountered in the macro script is provided.
 Normally, the provision of the response will cause the requesting client to drop
 the connection</p>
 
@@ -554,9 +569,10 @@ the connection</p>
 <h3>Ending the sequence</h3>
 
 <p>The sequence ends in several ways:</p>
-<ul><li>An end tag is set to true in a step</li>
-<li>The script reaches the last step</li>
-<li>A json parsing error occurs in the script</li>
+<ul><li>The preprocessor exits with a non-zero return value</li>
+<li>An end tag is set to true in a step</li>
+<li>The macro script reaches the last step</li>
+<li>A json parsing error occurs in the macro script</li>
 <li>A jump is requested to an invalid label</li></ul>
 
 Note that it is acceptable to have a step with just a 
@@ -750,7 +766,7 @@ the sender, so in this example, the CONNECT step is not strictly necessary, and 
 
 <div class="comment">
 <p>As the sessionId is cached as a variable whenever it is updated, the variable <b>$(sessionId)</b> can also
-be used instead of the actual value, e.g. in this case <b>98e301ef-305d-4edc-9ac2-7b5031810d0f</b> - this method allows for the creation of generic scripts / command sequences.</p>
+be used instead of the actual value, e.g. in this case <b>98e301ef-305d-4edc-9ac2-7b5031810d0f</b> - this method allows for the creation of generic macro scripts / command sequences.</p>
 </div>
 
 <div class="sent">

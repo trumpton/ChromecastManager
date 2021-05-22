@@ -39,85 +39,6 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
   if (cch->macro) free(cch->macro) ;
   cch->macro=donew() ;
 
-  if (cch->httpsessionvars) free(cch->httpsessionvars) ;
-  cch->httpsessionvars = donew() ;
-
-  if (!cch->macro || !cch->httpsessionvars) goto fail ;
-
-  if (httpsh) {
-
-    char *body = hgetbody(httpsh) ;
-
-    if (body) {
-
-      /////////////////////////////////////////////////////
-      // Create httpsessionvars variables from http body
-
-      DATAOBJECT *bh = donew() ;
-      if (!bh) goto fail ;
-        
-      if (!dofromjson(bh, body)) {
-
-        // Errors expanding variables, so report
-
-        int responseCode=200 ;
-        char *status = "FAILED" ;
-        char *info = dojsonparsestrerror(cch->macro) ;
-
-        // Convert double quotes to single in info so that the json response does
-        // not break
-
-        for (int i=0; i<strlen(info); i++) { if (info[i]=='\"') info[i]='\'' ; }
-
-        // Send response
-
-        hsend(httpsh, responseCode, "application/json",
-              "{\n  \"status\":\"%s\",\n  \"info\":\"%s\"\n}",
-              status, info) ;
-
-        dodelete(bh) ;
-        goto fail ;
- 
-      } else {
-
-        DATAOBJECT *v ;
-        char *variable ;
-        char *value ;
-        int i=0 ;
-
-        while (v=donoden(bh, i++)) {
-
-          variable=donodelabel(v) ;
-          value=donodedata(v, NULL) ;
-
-          if (variable && value && *variable!='\0') {
-            dosetdata(cch->httpsessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
-            dosetdata(cch->httpsessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
-          }
-
-        }
-
-        dodelete(bh) ;
-
-      }
-
-    }
-
-    /////////////////////////////////////////////////////
-    // Create httpsessionvars variables from http query parameters
-
-    char *variable ;
-    int index=1 ;
-    while (variable=hgeturiparamname(httpsh, index++)) {
-
-      dosetdata(cch->httpsessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
-
-      char *value = hgeturiparamstr(httpsh, variable) ;
-      if (value) dosetdata(cch->httpsessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
-
-    }
-
-  }
 
   /////////////////////////////////////////////////////
   // Copy macro and expand unquoted variables only
@@ -126,6 +47,9 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
   if (!evmacro) goto fail ;
 
   strcpy(evmacro, macro) ;
+
+  ccexpandvariables(cch->vars, evmacro, 1, 1) ;
+  ccexpandvariables(cch->httpsessionvars, evmacro, 1, 1) ;
   ccexpandvariables(cch->vars, evmacro, 1, 1) ;
   ccexpandvariables(cch->httpsessionvars, evmacro, 1, 0) ;
 
@@ -159,7 +83,7 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
     goto fail ;
 
-  } else if (!dofindnode(cch->macro, "/script")) {
+  } else if (!dofindnode(cch->macro, "/steps")) {
 
     // Script not found
 
@@ -167,7 +91,7 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
       int responseCode=200 ;
       char *status = "FAILED" ;
-      char *info = "Missing {'script': ... from script" ;
+      char *info = "Missing 'steps': [] from script" ;
 
       // Send response
 
@@ -181,15 +105,15 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
   }
 
- 
+  mem_free(evmacro) ;
+  evmacro = NULL ;
+
   /////////////////////////////////////////////////////
   // First macro step is 1 (index=0) - start processing
 
   cch->macroindex=1 ;
   cch->macrotimer = (time_t)0 ;
   cch->macroforce = 0 ;
-
-  mem_free(evmacro) ;
 
   return chromecast_macro_process(httpsh, cch) ;
 
@@ -202,6 +126,7 @@ fail:
   cch->macro = NULL ;
   if (cch->httpsessionvars) dodelete(cch->httpsessionvars) ;
   if (evmacro) mem_free(evmacro) ;
+
   cch->httpsessionvars = NULL ;
   return 0 ;
 
@@ -232,7 +157,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
   // Cancel any force (it can be reasserted if required) 
   cch->macroforce=0 ;
 
-  while ( (thisstep=dochild(dofindnode(cch->macro, "/script/%d", num))) && 
+  while ( (thisstep=dochild(dofindnode(cch->macro, "/steps/%d", num))) && 
           num>=0 && num!=last && (loopcount--)>0) {
 
     DATAOBJECT *step = donewfrom(thisstep) ;
@@ -504,7 +429,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
         int j=0 ;
         int found=0 ;
         DATAOBJECT *search ;
-          DATAOBJECT *scriptlist = dochild(dofindnode(cch->macro, "/script")) ;
+          DATAOBJECT *scriptlist = dochild(dofindnode(cch->macro, "/steps")) ;
           while (!found && (search=dochild(donoden(scriptlist, j))) ) {
             char *label = dogetdata(search, do_string, NULL, "/label") ;
             if (label && strcmp(label, gotolabel)==0) {
@@ -683,8 +608,10 @@ int _expand_entry_variables(DATAOBJECT *entry, CHROMECAST *cch)
 
   // Expand variables from watches and httpd queries
 
+  ccexpandvariables(cch->vars, buf, 0, 1) ;
   ccexpandvariables(cch->httpsessionvars, buf, 0, 1) ;
-  ccexpandvariables(cch->vars, buf, 0, 0) ;
+  ccexpandvariables(cch->vars, buf, 0, 1) ;
+  ccexpandvariables(cch->httpsessionvars, buf, 0, 0) ;
 
   // Convert expanded string back to json data
 

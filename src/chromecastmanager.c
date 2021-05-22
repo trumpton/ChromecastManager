@@ -155,6 +155,13 @@ int main(int argc, char *argv[])
   logsetlevel(loglevel?loglevel:"notice") ;
   logmsg(LOG_NOTICE, "server started") ;
 
+  // Change current directory to the config/script folder
+
+  if (chdir(getscriptfolder())<0) {
+    logmsg(LOG_ERR, "Script folder %s not found", getscriptfolder()) ;
+    goto fail ;
+  }
+
   if (getenv("SSLKEYLOGFILE")) 
     logmsg(LOG_NOTICE, "Environment variable SSLKEYLOGFILE found - logging tls keys") ;
 

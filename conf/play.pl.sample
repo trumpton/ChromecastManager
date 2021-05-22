@@ -1,0 +1,123 @@
+#!/usr/bin/perl
+#
+# playpp.pl.sample
+#
+# Sample perl preprocess
+#
+# Parses: { "textfield": "[sound] [number] on [device]" }
+# into: { "device": "[device]", "url": "[url for sound]" }
+#
+# e.g. "test two on kitchen speaker", "alert 1 on lounge chromecast audio"
+#
+
+use 5.010 ;
+use File::Basename;
+use Cwd qw(abs_path);
+use Data::Dumper;
+use URI::Encode ;
+
+##############################
+#
+# Execute Sequence
+#
+
+my $request ;
+
+if ( $ARGV[0] =~ /GET/ ) {
+  ($request) = ( $ARGV[1] =~ /.*textfield=(.*)$/g ) ;
+} else {
+  my $body = readbody() ;
+  ($request) = ( $body =~ /.*["']textfield["'] *: *["'](.*)["']/g ) ;
+}
+
+my $output = process($request) ;
+
+print $output ;
+exit 0 ;
+
+
+##############################
+#
+# Process and generate output
+#
+
+sub process {
+
+	# Parse passed parameters - extract textfield
+
+	my ($request) = @_ ;
+        my $uri = URI::Encode->new( {encode_reserved => 0 } ) ;
+        my $textfield=lc($uri->decode($request)) ;
+
+	# Define server (macro will expand $() variables
+
+        my $server="http://\$(serverIpAddress):\$(serverPort)" ;
+
+	# Log request to syslog
+
+	print STDERR "request = $request\n" ;
+
+	# Parse textfield request
+
+        my ($file,$number,$device) = 
+		$textfield =~ /^(.*)\W+(.*)\W+on\W+(.*)/ix ;
+
+	# Clean up number
+
+	$number = convertnumber($number) ;
+
+	# Generate response
+
+	my $url = "$server/$file$number.ogg" ; 
+
+	my $response = "{\n" .
+			"  \"textfield\": \"$textfield\",\n" .
+			"  \"device\": \"$device\",\n" .
+			"  \"url\": \"$url\"\n" . 
+			"}" ;
+
+	return $response ;
+}
+
+
+##############################
+#
+# Convert text to number
+#
+
+sub convertnumber {
+
+  my @substitutions = (
+    [ "one", "1" ],
+    [ "two", "2" ], [ "to", "2" ], [ "too", "2" ],
+    [ "three", "3" ],
+    [ "four", "4" ], [ "fore", "4" ] ) ;
+
+  my ($txt) = @_ ;
+  my $l = scalar @substitutions ;
+  for my $i (0..$l) {
+    my $tst = $substitutions[$i][0] ;
+    my $is = $substitutions[$i][1] ;
+    if ( $txt eq $tst ) {
+      $txt = $is ;
+    }
+  }
+  return $txt + 0 ;
+}
+
+
+##############################
+#
+# Read data from stdin
+#
+
+sub readbody()
+{
+  my $body="" ;
+  while (my $line = <STDIN>) {
+    chomp $line ;
+    $body = $body . $line . "\n";
+  }
+  return $body;
+}
+

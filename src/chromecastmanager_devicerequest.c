@@ -19,13 +19,18 @@
 #include "libdataobject/dataobject.h"
 
 #include "libtools/log.h"
+#include "libtools/execute.h"
 
 // Help text for httpd server /help query
 #include "html/html_filesystem.h"
 
 
 char *scriptfilename(char *uri) ;
-char *loadscriptfromfile(char *uri) ;
+mem *loadscriptfromfile(char *uri) ;
+mem *chromecast_device_request_malloc_convert_body(char *json, char *preprocess) ;
+int chromecast_device_expand_json(DATAOBJECT *body, char *json, DATAOBJECT *sessionvars) ;
+int chromecast_device_update_sessionvars(DATAOBJECT *sessionvars, char *json) ;
+
 
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
@@ -35,69 +40,35 @@ char *loadscriptfromfile(char *uri) ;
 
 int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int maxcc) 
 {
-  if (!httpsh) return -1 ;
+  int index = -1 ;
 
-  // Get uri and query parameters
+  if (!httpsh || !cclist || !cclist[0]) return -1 ;
 
-  char *device = hgeturiparamstr(httpsh, "device") ;
+
+  ///////////////////////////////////////////////////
+  // Capture uri
+
   char *uri = hgeturi(httpsh) ;
 
-  // Search for device
+
+  ///////////////////////////////////////////////////
+  // Dispatch to appropriate query handler
 
   char *file, *mediatype ;
   int len ;
-  int index=-1 ;
 
-  if (device && *device!='\0') {
-
-    // Device was passed as a uri parameter
-
-    index = chromecast_finddevice(device, maxcc) ;
-
-  }
-
-  if (index<0) {
-
-    // Check JSON body for device name
-
-    DATAOBJECT *body = donew() ;
-    if (!body) return -1 ;
-    char *bodytxt = hgetbody(httpsh) ;
-
-    if (bodytxt) {
-      dofromjson(body, bodytxt) ;
-      char *dodevice = dogetdata(body, do_string, NULL, "/device") ;
-      if (dodevice) {
-        index = chromecast_finddevice(dodevice, maxcc) ;
-      }
-    }
-    dodelete(body) ;
- 
-  }
-
-  // Log friendlyname string
-
-  char *friendlyname = (index<0) ? NULL : chromecast_mdns_at(index)->friendlyname ;
-  logmsg(LOG_DEBUG, "Friendly name for request: %s\n", friendlyname ? friendlyname : "unknown device") ;
-
-  // Search for file in filesystem
-
-  int filefound = html_filesystem(uri, &file, &mediatype, &len) ;
-
-  // Dispatch to appropriate query handler
-
-  if (filefound) {
+  if (html_filesystem(uri, &file, &mediatype, &len)) {
 
     /////////////////////////////////////
     // URI: filesystem file
 
     hsendb(httpsh, 200, mediatype, file, len) ;
-    index=-1 ;
 
     logmsg(LOG_INFO, "Received request: %s from %s:%d - returning script %s.json", 
                      uri, 
                      hpeeripaddress(httpsh), hpeerport(httpsh),
                      uri) ;
+
 
   } else if (strcasecmp(uri, "/serverinfo")==0) {
 
@@ -105,11 +76,12 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
     // URI: /serverinfo
 
     chromecast_device_request_process_serverinfo(httpsh) ;
-    index=-1 ;
 
     logmsg(LOG_INFO, "Received request: %s from %s:%d - returning media list", 
                      uri, 
                      hpeeripaddress(httpsh), hpeerport(httpsh)) ;
+
+
 
   } else if (strcasecmp(uri, "/devicelist")==0) {
 
@@ -117,83 +89,75 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
     // URI: /devicelist
 
     chromecast_device_request_process_devicelist(httpsh, cclist, maxcc) ;
-    index=-1 ;
 
     logmsg(LOG_INFO, "Received request: %s from %s:%d - returning device list", 
                      uri, 
                      hpeeripaddress(httpsh), hpeerport(httpsh)) ;
 
-  } else if (strcmp(uri, "/jsonquery")!=0 && strcmp(uri, "/jsonscript")!=0 && !scriptfilename(uri)) {
- 
-    /////////////////////////////////////
-    // 404 - File not found
-    //
-    // All the remaining uris require that
-    // the device to be specified in the uri
-    // So if the request is not for one of 
-    // the json queries / scripts by the time 
-    // the process flow has reached here, 
-    // bail now 
 
-    hsend(httpsh, 404, "text/html", "/404.html") ;
-    index=-1 ;
-
-    logmsg(LOG_INFO, "Received request: %s from %s:%d - returning 404, file not found", 
-                     uri, 
-                     hpeeripaddress(httpsh), hpeerport(httpsh)) ;
-
-  } else if (index<0 || !cclist[index]) {
-
-    /////////////////////////////////////
-    // 503 - Device not found
-
-    hsend( httpsh, 503, "application/json", 
-             "{\"status\":\"NODEVICE\","
-             "\"info\":\"chromecast device not found\"}" ) ;
-    index=-1 ;
-
-    logmsg(LOG_NOTICE, "Received request: %s from %s:%d - device '%s' not found", 
-                       uri, hpeeripaddress(httpsh), hpeerport(httpsh),
-                       (device && *device!='\0')?device:"undefined") ;
 
   } else if (strcmp(uri, "/jsonquery")==0) {
 
     /////////////////////////////////////
-    // URI: /jsonquery?device=ip
+    // URI: /jsonquery?device=devicename
 
-    if (!chromecast_device_request_process_jsonquery(httpsh, cclist[index])) {
-      index=-1 ;
+    DATAOBJECT *sessionvars = NULL ;
+    DATAOBJECT *body = donew() ;
+    if (!body) goto jsonqueryfail ;
+
+    // Transfer all uri query parameters into sessionvars
+
+    sessionvars = donew() ;
+    if (!sessionvars) goto jsonqueryfail ;
+
+    char *variable ;
+    int svi=1 ;
+    while (variable=hgeturiparamname(httpsh, svi++)) {
+      dosetdata(sessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
+      char *value = hgeturiparamstr(httpsh, variable) ;
+      if (value) dosetdata(sessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
     }
 
-    logmsg(LOG_INFO, "Received request: %s from %s:%d - json query", 
-                       uri, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
+    // parse json body into dataobject and extract device name if present
 
+    if (!chromecast_device_expand_json(body, hgetbody(httpsh), sessionvars )) goto jsonqueryfail ;
 
-  } else if (strcmp(uri, "/jsonscript")==0) {
+    char *device=dogetdata(sessionvars, do_string, NULL, "/device/value") ;
+    char *friendlyname=NULL ;
+    if (device) { 
+      index = chromecast_finddevice(device, maxcc) ; 
+      friendlyname = chromecast_mdns_at(index)->friendlyname ;
+    }
+    friendlyname = friendlyname ? friendlyname : "unknown" ;
 
-    /////////////////////////////////////
-    // URI: /jsonscript?device=devicename
+    if (!device || index<0 || !cclist[index]) { 
 
-    char *json = hgetbody(httpsh) ;
+      hsend( httpsh, 503, "application/json", 
+               "{\"status\":\"NODEVICE\","
+               "\"info\":\"chromecast device not found\"}" ) ;
 
-    if (!json) {
-
-      logmsg(LOG_ERR, "Processing request: %s from %s:%d - error in request body - FAILED", 
-                       uri, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
-      index=-1 ;
-
-    } else if (chromecast_macro_load(httpsh, cclist[index], json)) {
-
-      logmsg(LOG_INFO, "Received request: %s from %s:%d - json script", 
-                       uri, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
+      logmsg(LOG_NOTICE, "Received request: %s from %s:%d - device '%s' not found", 
+                         uri, hpeeripaddress(httpsh), hpeerport(httpsh), friendlyname) ;
+      index = -1 ;
 
     } else {
 
-      logmsg(LOG_ERR, "Processing request: %s from %s:%d - json script loading error - FAILED", 
-                       uri, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
-      index=-1 ;
+      logmsg(LOG_INFO, "Received request: %s for %s from %s:%d - json query", 
+                         uri, friendlyname, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
+
+      if (!chromecast_device_request_process_jsonquery(httpsh, cclist[index])) {
+
+        index = -1 ;
+
+      }
 
     }
+
+jsonqueryfail:
+    if (sessionvars) dodelete(sessionvars) ;
+    if (body) dodelete(body) ;
+
+
 
 
   } else if (scriptfilename(uri)) {
@@ -201,36 +165,335 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
     /////////////////////////////////////
     // URI: /scriptname?device=devicename
 
-    char *json = loadscriptfromfile(uri) ;
+    // Locate the script and get preprocess
 
-    if (!json) {
+    mem *jsonscript = NULL ;
+    DATAOBJECT *script = NULL ;
+    DATAOBJECT *sessionvars = NULL ;
 
-      logmsg(LOG_ERR, "Processing request: %s from %s:%d - script not found - FAILED", 
-                       uri, 
-                       hpeeripaddress(httpsh), hpeerport(httpsh)) ;
-      index=-1 ;
+    script = donew() ;
+    if (!script) goto scriptfail ;
 
-    } else if (chromecast_macro_load(httpsh, cclist[index], json)) {
+    char *jsonbody = hgetbody(httpsh) ;
 
-      logmsg(LOG_INFO, "Received request: %s from %s:%d - json script", 
-                       uri, 
-                       hpeeripaddress(httpsh), hpeerport(httpsh)) ;
 
-    } else {
+    // Transfer all uri query parameters into sessionvars
 
-      logmsg(LOG_ERR, "Processing request: %s from %s:%d - json script loading error - FAILED", 
-                       uri, 
-                       hpeeripaddress(httpsh), hpeerport(httpsh)) ;
-      index=-1 ;
+    sessionvars = donew() ;
+    if (!sessionvars) goto jsonqueryfail ;
+
+    char *variable ;
+    int svi=1 ;
+    while (variable=hgeturiparamname(httpsh, svi++)) {
+      dosetdata(sessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
+      char *value = hgeturiparamstr(httpsh, variable) ;
+      if (value) dosetdata(sessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
+    }
+
+
+    jsonscript = loadscriptfromfile(uri) ;
+
+    if (!jsonscript) {
+
+      int responseCode=200 ;
+      char *status = "FAILEDPREPROCESSING" ;
+      char *info = "Script not found" ;
+
+      // Send response
+
+      hsend(httpsh, responseCode, "application/json",
+            "{\n  \"status\":\"%s\",\n  \"info\":\"%s\"\n}",
+            status, info) ;
+
+      logmsg( LOG_ERR, "Processing request: %s from %s:%d - script not found - FAILED", 
+                        uri, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
+
+      goto scriptfail ;
 
     }
 
-    if (json) free(json) ;
+    // First pass parse jsonscript before getting info from http body
+
+    ccexpandvariables(sessionvars, jsonscript, 1, 0) ;
+
+    // Now parse the jsonscript into the script object
+
+    if (!dofromjson(script, jsonscript)) {
+
+        // Errors expanding variables, so report
+
+        int responseCode=200 ;
+        char *status = "FAILEDPREPROCESSING" ;
+        char *info = dojsonparsestrerror(script) ;
+
+        // Convert double quotes to single in info so that the json response does not break
+
+        for (int i=0; i<strlen(info); i++) { if (info[i]=='\"') info[i]='\'' ; }
+
+        // Send response
+
+        hsend(httpsh, responseCode, "application/json",
+              "{\n  \"status\":\"%s\",\n  \"info\":\"%s\"\n}",
+              status, info) ;
+
+        logmsg( LOG_ERR, "Processing request: %s from %s:%d - script parse failed - %s", 
+                          uri, hpeeripaddress(httpsh), hpeerport(httpsh), info) ;
+
+        goto scriptfail ;
+
+    }
+
+    
+    if (jsonbody) {
+
+      // Preprocess body if requested
+
+      char *preprocess = dogetdata(script, do_string, NULL, "/preprocess") ;
+      mem *processedbody = chromecast_device_request_malloc_convert_body(jsonbody, preprocess) ;
+
+      if (!processedbody) goto scriptfail ;
+
+      // Parse the body, and update sessionvars
+
+      if (!chromecast_device_update_sessionvars(sessionvars, processedbody)) goto scriptfail ;
+
+      // Re-load the script using the processed body output
+
+      mem_free(jsonscript) ;
+      jsonscript = loadscriptfromfile(uri) ;
+
+      mem_free(processedbody) ;
+
+    }
+
+    // Find the device
+
+    char *device=dogetdata(sessionvars, do_string, NULL, "/device/value") ;
+    char *friendlyname=NULL ;
+    if (device) { 
+      index = chromecast_finddevice(device, maxcc) ; 
+      friendlyname = chromecast_mdns_at(index)->friendlyname ;
+    }
+    friendlyname = friendlyname ? friendlyname : "unknown" ;
+
+    if (!device || index<0 || !cclist[index]) { 
+
+      hsend( httpsh, 503, "application/json", 
+               "{\"status\":\"NODEVICE\","
+               "\"info\":\"chromecast device not found\"}" ) ;
+
+      logmsg(LOG_NOTICE, "Received request: %s from %s:%d - device '%s' not found", 
+                         uri, hpeeripaddress(httpsh), hpeerport(httpsh), friendlyname) ;
+
+      index = -1 ;
+
+    } else {
+
+      //  move sessionvars into httpsh
+
+      if (cclist[index]->httpsessionvars) dodelete(cclist[index]->httpsessionvars) ;
+      cclist[index]->httpsessionvars = sessionvars ;
+      sessionvars = NULL ;
+
+      // Log session vars
+
+      char *svlog = doasjson(cclist[index]->httpsessionvars, NULL) ;
+      logmsg(LOG_DEBUG, "Session vars pre macro load: %s", svlog) ;
+
+      // Load the macro
+
+      if (chromecast_macro_load(httpsh, cclist[index], jsonscript)) {
+
+        logmsg(LOG_INFO, "Received request: %s for %s from %s:%d - json script", 
+                         uri, friendlyname, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
+
+      } else {
+
+        logmsg(LOG_ERR, "Processing request: %s for %s from %s:%d - json script loading error - FAILED", 
+                         uri, friendlyname, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
+        index = -1 ;
+
+      }
+
+    }
+
+scriptfail:
+
+    if (sessionvars) dodelete(sessionvars) ;
+    if (script) dodelete(script) ;
+    if (jsonscript) mem_free(jsonscript) ;
+
+
+  } else {
+ 
+    /////////////////////////////////////
+    // 404 - File not found
+
+    if (html_filesystem("/404.html", &file, &mediatype, &len)) {
+      hsendb(httpsh, 404, mediatype, file, len) ;
+    } else {
+      hsend(httpsh, 404, "text/plain", "404 - File not found") ;
+    }
+      
+    logmsg(LOG_INFO, "Received request: %s from %s:%d - returning 404, file not found", 
+                     uri, 
+                     hpeeripaddress(httpsh), hpeerport(httpsh)) ;
+    index = -1 ;
 
   }
 
+
   return index ;
 
+}
+
+
+
+
+
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+// @brief Allocate output, and fill with preprocess
+
+mem *chromecast_device_request_malloc_convert_body(char *json, char *preprocess) 
+{
+  if (!json) return NULL ;
+
+  if (!preprocess) {
+
+   // No preprocessing, return copy of input
+ 
+   char *jsonout = mem_malloc(strlen(json)+1) ;
+   if (jsonout) strcpy(jsonout, json) ;
+   return jsonout ;
+
+  } else {
+
+   // Preprocessing, execute script and return output
+
+   char *jsonout = mem_malloc(8192) ; *jsonout='\0' ;
+   char jsonerr[8192] ; *jsonerr='\0' ;
+
+   // TODO: Update execute to malloc as it goes, and pass pointers to jsonout/err
+   
+   if (execute(preprocess, json, jsonout, 8191, jsonerr, sizeof(jsonerr)-1)==0) {
+
+     logmsg(LOG_DEBUG, "parsed json -> %s", jsonout) ;
+
+   } else {
+
+     logmsg(LOG_ERR, "Error parsing json") ;
+     free(jsonout) ;
+     jsonout=NULL ;
+
+   }
+
+   if (jsonerr[0]!='\0') {
+     logmsg(LOG_NOTICE, "%s", jsonerr) ;
+   }
+
+   return jsonout ;
+
+  }
+
+
+}
+
+
+
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+// @brief Extract session vars from body
+//
+
+int chromecast_device_update_sessionvars(DATAOBJECT *sessionvars, char *json)
+{
+  // Check Parameters
+
+  if (!json || !sessionvars) return 0 ;
+
+  // Expand JSON
+
+  DATAOBJECT *body = donew() ;
+  if (!body) goto fail ;
+
+  if (!dofromjson(body, json)) {
+
+    // Report error and return 0
+
+    logmsg( LOG_INFO, "Request body sessionvars json parse error - %s", 
+            dojsonparsestrerror(body)) ;
+
+    goto fail ;
+
+  }
+
+  // Walk through body and store all entries as session vars
+
+  int i=0 ;
+  DATAOBJECT *p ;
+
+  while (p=donoden(body, i++)) {
+
+    // Note: This only works with strings!
+
+    char *variable = donodelabel(p) ;
+    char *value = donodedata(p, NULL) ;
+
+    if (variable && value) {
+      dosetdata(sessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
+      dosetdata(sessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
+    }
+  }
+
+
+  dodelete(body) ;
+  return 1 ;
+
+fail:
+  if (body) dodelete(body);
+  return 0 ;
+}
+
+
+
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+// @brief Expand json into body, and extract device
+//
+
+int chromecast_device_expand_json(DATAOBJECT *body, char *json, DATAOBJECT *sessionvars)
+{
+  // Check Parameters
+
+  if (!body || !json || !sessionvars) return 0 ;
+
+  // Expand JSON
+
+  if (!dofromjson(body, json)) {
+
+    // Report error and return 0
+
+    logmsg( LOG_INFO, "Request body json parse error - %s", 
+            dojsonparsestrerror(body)) ;
+
+    return 0 ;
+
+  }
+
+  // Search for /device
+
+  char variable[] = "device" ;
+  char *value = dogetdata(body, do_string, NULL, "/%s", variable) ;
+
+  // Store as variable in sessionvars
+
+  if (value) { 
+      dosetdata(sessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
+      dosetdata(sessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
+  }
+
+  return 1 ;
 }
 
 
@@ -489,7 +752,7 @@ char *scriptfilename(char *uri)
 // @brief Read script from file and return pointer to data
 //
 
-char *loadscriptfromfile(char *uri) 
+mem *loadscriptfromfile(char *uri) 
 {
   if (!uri) return NULL ;
 
@@ -504,20 +767,26 @@ char *loadscriptfromfile(char *uri)
 
   int ch ;
   int i=0;
-  char *buf=malloc(32) ;
+  char *buf=mem_malloc(32) ;
   int buflen=sizeof(buf) ;
 
   while ( (ch=fgetc(fp)) > 0 ) {
     if (i>=(buflen-1)) {
       buflen+=32 ;
-      buf=realloc(buf, buflen) ;
+      buf=mem_realloc(buf, buflen) ;
       if (!buf) goto fail ;
     }
     buf[i++]=ch ;
   }
 
+  // Terminate
+
   buf[i]='\0' ;
 
+  // Expand to allow space for variable expansion
+
+  buf = mem_realloc(buf, buflen+1024) ;
+  
 fail:
   fclose(fp) ;
   return buf ;

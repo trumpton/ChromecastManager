@@ -30,30 +30,14 @@ function processform()
     url="/devicelist" ;
     body= null ;
     
-  } else if (commands == "jsonscript" ) {
+  } else if (commands == "serverinfo") {
 
     /////////////////////////////////
-    // Prepare /jsonscript request POST
+    // Prepare /serverinfo GET
 
-    var msgscript = document.getElementById("msgscript") ;
-
-    try {
-
-      body = JSON.parse(msgscript.value) ;
-      headers['Content-Type'] = "application/json" ;
-      method = "POST" ;
-
-    } catch (e) {
-
-      url = null ;
-      responsetxt = "<p><b>Error parsing JSON - request not sent:</b></p>" +
-                    "<p><i>" + getsampleerror(msgscript.value, e) + "</i></p>"
-
-      document.getElementById("response").innerHTML = responsetxt ;
-
-    }
-
-
+    url="/serverinfo" ;
+    body= null ;
+    
   } else if (commands == "jsonquery" ) {
 
     /////////////////////////////////
@@ -262,12 +246,10 @@ function enablefields()
   var commands = command ? command.value : "" ;
   var deviced = document.getElementById("deviced");
   var jsonqueryd = document.getElementById("jsonqueryd");
-  var jsonscriptd = document.getElementById("jsonscriptd");
   var commandd = document.getElementById("commandd");
 
   deviced.style.display = "none" ;
   jsonqueryd.style.display = "none" ;
-  jsonscriptd.style.display = "none" ;
   commandd.style.display = "none" ;
   medialistd.style.display = "none" ;
 
@@ -277,11 +259,9 @@ function enablefields()
     // Nothing to do
   } else if (commands=="jsonscript") {
     deviced.style.display = "block";
-    jsonscriptd.style.display = "block" ;
     medialistd.style.display = "block" ;
   } else if (commands=="jsonquery") {
     deviced.style.display = "block";
-    jsonqueryd.style.display = "block" ;
     medialistd.style.display = "block" ;
   } else {
     deviced.style.display = "block";
