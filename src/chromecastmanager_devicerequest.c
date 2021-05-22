@@ -382,8 +382,8 @@ mem *chromecast_device_request_malloc_convert_body(char *json, char *preprocess)
 
    } else {
 
-     logmsg(LOG_ERR, "Error parsing json") ;
-     free(jsonout) ;
+     logmsg(LOG_ERR, "Error preprocessing json (%s)", json?json:"null") ;
+     mem_free(jsonout) ;
      jsonout=NULL ;
 
    }
