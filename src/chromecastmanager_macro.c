@@ -17,11 +17,6 @@
 #include "libtools/mem.h"
 #include "libtools/str.h"
 
-// Expand variables in entry structure with info from cch->vars and
-// httpsh params
-int _expand_entry_variables(DATAOBJECT *entry, CHROMECAST *cch) ;
-
-
 
 //
 // @brief Load Macro
@@ -32,31 +27,22 @@ int _expand_entry_variables(DATAOBJECT *entry, CHROMECAST *cch) ;
 
 int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 {
-  mem *evmacro=NULL ;
 
   if (!cch || !macro) return 0 ;
 
   if (cch->macro) free(cch->macro) ;
   cch->macro=donew() ;
 
+  /////////////////////////////////////////////////////
+  // Initialise sequence variable (stored as string)
+
+  dosetdata(cch->httpsessionvars, do_string, "seq", 3, "/seq/variable") ;
+  dosetdata(cch->httpsessionvars, do_string, "0", 1, "/seq/value") ;
 
   /////////////////////////////////////////////////////
-  // Copy macro and expand unquoted variables only
+  // Parse macro (without parsing unquoted as they may contain variables)
 
-  evmacro = mem_malloc(strlen(macro)+1024) ;
-  if (!evmacro) goto fail ;
-
-  strcpy(evmacro, macro) ;
-
-  ccexpandvariables(cch->vars, evmacro, 1, 1) ;
-  ccexpandvariables(cch->httpsessionvars, evmacro, 1, 1) ;
-  ccexpandvariables(cch->vars, evmacro, 1, 1) ;
-  ccexpandvariables(cch->httpsessionvars, evmacro, 1, 0) ;
-
-  /////////////////////////////////////////////////////
-  // Then parse macro
-
-  if (!dofromjson(cch->macro, evmacro) ) {
+  if (!dofromjsonu(cch->macro, macro) ) {
 
     // Errors expanding macro, so report
 
@@ -105,9 +91,6 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
   }
 
-  mem_free(evmacro) ;
-  evmacro = NULL ;
-
   /////////////////////////////////////////////////////
   // First macro step is 1 (index=0) - start processing
 
@@ -125,7 +108,6 @@ fail:
   if (cch->macro) dodelete(cch->macro) ;
   cch->macro = NULL ;
   if (cch->httpsessionvars) dodelete(cch->httpsessionvars) ;
-  if (evmacro) mem_free(evmacro) ;
 
   cch->httpsessionvars = NULL ;
   return 0 ;
@@ -149,6 +131,10 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
   if (!cch) return 0 ;
   if (!cch->macro) return 1 ;
 
+  // increment Sequence Counter
+
+  ccincrementvar(cch->httpsessionvars, "/seq/value") ;
+
   DATAOBJECT *thisstep ;
   int num = cch->macroindex-1 ;
   int last = -1 ;
@@ -164,9 +150,14 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
     last=num ;
 
-    // Process Entry
+    // Expand entry variables (2 passes to allow for nested variables)
 
-    _expand_entry_variables(step, cch) ;
+    ccexpandvariables(step, cch->vars, 1) ;
+    ccexpandvariables(step, cch->httpsessionvars, 1) ;
+    ccexpandvariables(step, cch->vars, 1) ;
+    ccexpandvariables(step, cch->httpsessionvars, 0) ;
+
+    // Process Entry
 
     char *op=dogetdata(step, do_string, NULL, "/op") ;
 
@@ -583,44 +574,4 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
   return (num>=0) ;
 
 }
-
-
-//////////////////////////////////////////////////////////////////////
-//
-// Expand variables in script entry structure with info from cch->vars 
-// and httpsh params - clear any remaining $blah variables
-//
-
-int _expand_entry_variables(DATAOBJECT *entry, CHROMECAST *cch)
-{
-
-  int len ;
-  mem *buf ;
-
-  if (!entry || !cch) return 0 ;
-
-  // Convert entry data to a string
-
-  char *entryasjson = doasjson(entry, &len) ;
-  buf=mem_malloc(len+1024) ;
-
-  str_strcpy(buf, entryasjson) ;
-
-  // Expand variables from watches and httpd queries
-
-  ccexpandvariables(cch->vars, buf, 0, 1) ;
-  ccexpandvariables(cch->httpsessionvars, buf, 0, 1) ;
-  ccexpandvariables(cch->vars, buf, 0, 1) ;
-  ccexpandvariables(cch->httpsessionvars, buf, 0, 0) ;
-
-  // Convert expanded string back to json data
-
-  doclear(entry) ;
-  dofromjson(entry, buf) ;
-  mem_free(buf) ;
-
-  return 1 ;
-
-}
-
 

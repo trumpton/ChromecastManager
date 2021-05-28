@@ -289,15 +289,25 @@ char * ccgetwatchat(CHROMECAST *cch, int index) ;
 
 //////////////////////////////////////////////////////////////////////////
 //
-// @brief Expand variables in format $(var) $(s:var) $(i:var) $(f:var) $(b:var)
+// @brief Increments the value of a variable which is stored as a string
 // @param(in) vars Pointer to a variables structure
-// @param(in) buf Pointer to string buffer
-// @param(in) justunquoted If true, only expands unquoted
+// @param(in) path Identifies the variable within vars
+// @returns true on success
+
+int ccincrementvar(DATAOBJECT *vars, char *path) ;
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Expand variables in format @(file) @(file:n) @(file:+) $(var) $(s:var) $(i:var) $(f:var) $(b:var)
+// @param(in) dh Pointer to data object which contains variables to expand
+// @param(in) vars Pointer to a variables structure
 // @param(in) leaveifempty If true, empty / invalid variables are not expanded
 // @return True on success
 //
 
-int ccexpandvariables(DATAOBJECT *vars, mem *buf, int justunquoted, int leaveifempty) ;
+int ccexpandvariables(DATAOBJECT *dh, DATAOBJECT *vars, int leaveifempty) ;
+int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty) ;
 
 
 

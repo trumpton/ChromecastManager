@@ -863,8 +863,8 @@ int ccsendmessage(CHROMECAST *cch, char *sender, char *receiver, char *namespace
 
   // Substitute Variables
 
-  ccexpandvariables(cch->httpsessionvars, messagebuf, 0, 1) ;
-  ccexpandvariables(cch->vars, messagebuf, 0, 0) ;
+  ccexpandstrvariables(messagebuf, cch->httpsessionvars, 1) ;
+  ccexpandstrvariables(messagebuf, cch->vars, 0) ;
 
   // Update sender, receiver and namespace as required
 

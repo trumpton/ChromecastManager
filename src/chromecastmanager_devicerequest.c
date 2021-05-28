@@ -212,13 +212,9 @@ jsonqueryfail:
 
     }
 
-    // First pass parse jsonscript before getting info from http body
+    // Parse the jsonscript into the script object
 
-    ccexpandvariables(sessionvars, jsonscript, 1, 0) ;
-
-    // Now parse the jsonscript into the script object
-
-    if (!dofromjson(script, jsonscript)) {
+    if (!dofromjsonu(script, jsonscript)) {
 
         // Errors expanding variables, so report
 

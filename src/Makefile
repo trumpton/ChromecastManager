@@ -23,7 +23,15 @@ debug: submodules libs-dbg ${EXECUTABLE}-dbg
 
 all: std debug
 
+#
+# sudo apt-get install gdb python3
+# pip install gdbgui
+#
+
 rund: debug
+	gdbgui --args ./chromecastmanager-dbg ../conf internal ./chromecastmanager-dbg
+
+runn: debug
 	nemiver ./chromecastmanager-dbg ../conf internal
 
 

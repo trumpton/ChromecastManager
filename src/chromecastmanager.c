@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
   int hqi[MAXHT] ;                    // Associated chromecast device # with http session
   int queriedindex=-1 ;               // Queried Index of last item queried
 
-  CHROMECAST **cch ;                  // Array of chromecast devices to use
+  CHROMECAST **cch=NULL ;             // Array of chromecast devices to use
   int maxcc=chromecast_mdns_size() ;  // Max number of chromecast devices
 
   time_t servicetime=0, pingchecktime=0 ;
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
   if (argc>4 || argc<2) {
 
     fprintf(stderr, "chromecastmanager scriptfolder [serverport] [loglevel]\n") ;
-    goto fail ;
+    exit(0) ;
 
   }
 

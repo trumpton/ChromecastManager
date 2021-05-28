@@ -136,10 +136,14 @@ established, and these too can be used to capture information</p>
 
 <p>Variables can be used in any json message (e.g. in the /jsonquery, or embedded in
 any of the macros).</p>
-<p>Variables are written in one of 3 different ways</p>
+<p>Variables are written in one of 4 different ways</p>
 <ul><li><b>$(variable)</b> or <b>$(s:variable)</b> - Variable is expressed as a string</li>
-<li><b>$(i:variable)</b> - Variable is expressed as an integer (a string would be interpreted as 00</li>
-<li><b>$(f:variable)</b> - Variable is expressed as a floating point number</li></ul>
+<li><b>$(i:variable)</b> - Variable is expressed as an integer (a string would be interpreted as 0)</li>
+<li><b>$(f:variable)</b> - Variable is expressed as a floating point number</li>
+<li><b>$(b:variable)</b> - Variable is expressed as a boolean (true/false)</li>
+<li><b>@(filename)</b> - Value is taken from the current line in the specified file in the config folder</li>
+<li><b>@(filename:n)</b> - Value is taken from line n in the specified file</li>
+<li><b>@(filename:+)</b> - Value value is taken from the current line, and the line is incremented</li></ul>
 
 <b>Updating Variables</b>
 
