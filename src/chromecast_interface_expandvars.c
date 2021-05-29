@@ -153,7 +153,8 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
 
       int s=0 ;
 
-      while (buf[p+varlen] != '\0' && buf[p+varlen] != ')' && buf[p+varlen] != ':' && s < MAXVARLABELLEN-1) {
+      while ( buf[p+varlen]!='\n' && buf[p+varlen] != '\0' && buf[p+varlen] != ')' && buf[p+varlen] != ':' &&
+              buf[p+varlen] != '$' && buf[p+varlen] !='@' && buf[p+varlen] != '(' && s < MAXVARLABELLEN-1) {
         variable[s] = buf[p+varlen] ;
         varlen++ ;
         s++ ;
