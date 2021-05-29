@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "libtools/mem.h"
 #include "libtools/str.h"
@@ -17,8 +18,8 @@
 char *getscriptfolder() ;
 
 // Functions to extract data from a file
-int _ccexpandvars_updatecache(DATAOBJECT *var, char *suffix) ;
-int _ccexpandvars_readfile(DATAOBJECT *var, char *path, char *filename, int line) ;
+int _ccexpandvars_updatecache(DATAOBJECT *var, int suffixline, int suffixcolumn) ;
+int _ccexpandvars_loadfile(DATAOBJECT *root) ;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -119,7 +120,10 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
     #define MAXVARLABELLEN 128
     char vdata[MAXVARLABELLEN] ;
     char *variable = vdata ;
-    char *suffix=NULL ;
+    int suffixline = 0 ;
+    int INCREMENT = -1 ; // suffixline constant
+    int CURRENT = 0 ;    // suffixline constant
+    int suffixcolumn = 0 ;
 
     if (buf[p]=='\\') {
       p++ ;
@@ -169,21 +173,55 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
 
       } else if (buf[p+varlen]==':') {
 
-        // Store suffix
+        // Store suffix values
+        // suffix is in the form :<linenumber>:<columnnumber>
+        // Linenumber = 0 or * -> current line is used
+        // Linenumber = + -> current line is used, but incrmented afterwards
+        // Columnnumber = missing -> First column is used
+        // Columnnumber = 0 or * -> whole line is used
+        // Linenumber or Columnnumber is digit -> appropriate line and column is used
 
         variable[s]='\0' ;
         varlen++ ;
-        suffix = &buf[p+varlen] ;
+
+        if (buf[p+varlen]=='+') {
+          suffixline = INCREMENT ;
+        } else if (buf[p+varlen]=='*') {
+          suffixline = CURRENT ;
+        } else if (buf[p+varlen]>='0' && buf[p+varlen]<='9') {
+          suffixline = atoi(&buf[p+varlen]) ;
+        }
 
         // Check / skip suffix
 
-        while (buf[p+varlen]=='+' || (buf[p+varlen]>='0' && buf[p+varlen]<='9') ) varlen++ ;
+        while (buf[p+varlen]=='+' || buf[p+varlen]=='*' || (buf[p+varlen]>='0' && buf[p+varlen]<='9') ) varlen++ ;
+
+        // Extract column value
+
+        if (buf[p+varlen]==':') {
+          varlen++ ;
+          if (buf[p+varlen]=='*' || (buf[p+varlen]>='0' && buf[p+varlen]<='9')) {
+            suffixcolumn = atoi(&buf[p+varlen]) ;
+          } else {
+            suffixcolumn = 1 ;
+          }
+        }
+
+        // Skip to end of suffix
+
+        while (buf[p+varlen]=='+' || buf[p+varlen]=='*' || (buf[p+varlen]>='0' && buf[p+varlen]<='9') ) varlen++ ;
 
         // Check for correct termination
 
-        if (buf[p+varlen]!=')') {
+        if (buf[p+varlen]==')') {
+
+          varlen++ ;
+
+        } else {
+
           variable[0]='\0' ;
           varlen=0 ;
+
         }
 
       } else {
@@ -216,8 +254,7 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
 
             if (type=='@') {
 
-                _ccexpandvars_updatecache(vh, suffix) ;
-                type='s' ;
+                _ccexpandvars_updatecache(vh, suffixline, suffixcolumn) ;
 
             }
 
@@ -230,14 +267,14 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
       }
 
       //////////////////////////////
-      // Add new @ type if not found
+      // Add @ variable if not found
 
-      if (type=='@') {
+      if (type=='@' && !vhvalue) {
 
         dosetdata(vars, do_string, variable, strlen(variable), "/%s/variable", variable) ;
         vh = dofindnode(vars, "/%s", variable) ;
-        _ccexpandvars_updatecache(vh, suffix) ;
-        vhvalue = dogetdata(vh, do_string, NULL, "/valuecache") ;
+        _ccexpandvars_updatecache(vh, suffixline, suffixcolumn) ;
+        vhvalue = dogetdata(vh, do_string, NULL, "/value") ;
 
       }
 
@@ -338,18 +375,23 @@ int ccincrementvar(DATAOBJECT *vars, char *path)
 // @brief Load value from a file and store in var
 //
 
-int _ccexpandvars_updatecache(DATAOBJECT *var, char *suffix)
+int _ccexpandvars_updatecache(DATAOBJECT *var, int suffixline, int suffixcolumn)
 {
   long int line = 1 ;
 
   ////////////////////////////////////////////
   // Get current line and cached data value
 
-  if (suffix && *suffix>='0' && *suffix<='9') {
+  if (suffixline>0) {
 
-    line = atoi(suffix) ;
+    // Line number requested (0=current)
+
+    line = suffixline ;
 
   } else {
+
+    // No line number requested, so fetch
+    // default = 1
 
     dogetsint(var, do_sint32, &line, "/line") ;
 
@@ -360,37 +402,159 @@ int _ccexpandvars_updatecache(DATAOBJECT *var, char *suffix)
   ////////////////////////////////////////////
   // Get cached value and update as needed
 
-  if (! _ccexpandvars_readfile( var, "/value",
-                                dogetdata(var, do_string, NULL, "/variable"),
-                                (int)line) ) {
-     // Extraction failed
+  if (_ccexpandvars_loadfile(var)) {
 
-     line=-1 ;
+    char *value = dogetdata(var, do_string, NULL, "/filesource/%d/%d", line, suffixcolumn) ;
+    if (!value) { value="" ; }
+    dosetdata(var, do_string, value, strlen(value), "/value") ;
+    
+  } else {
+
+   // Extraction failed
+   line=-1 ;
 
   }    
 
   ////////////////////////////////////////////
   // Update saved line number
 
-  if (line>=0 && (suffix && *suffix=='+') ) { 
+  if (line>=0 && suffixline<0 ) {
+
+    // Increment line number ready for next read 
+
     line++ ;
+
   }
  
-  if (line<0 || (suffix && *suffix!='\0') ) {
+  if (line<0 || line!=suffixline) {
+
     dosetsint(var, do_sint32, line, "/line") ;
+
   }
 
   return (line>=0) ;
 
 }
 
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Load data from file into root variable object
+// @param(in) root Data object in which to store file
+// @param(in) filename - name of file in the config folder
+//
+
+int _ccexpandvars_loadfile(DATAOBJECT *root)
+{
+  FILE *fp ;
+  int linenum=1 ;
+  char *filename=NULL ;
+  char buf[1024] ;
+
+  if (!root) return 0 ;
+
+  // Check if loaded / load attempted
+
+  long int loaded=0 ;
+  dogetuint(root, do_uint32, &loaded, "/loaded") ;
+  if (loaded==1) return 1 ;
+  else if (loaded==2) return 0 ;
+
+  // Get filename
+
+  filename = dogetdata(root, do_string, NULL, "/variable") ;
+  if (!filename || *filename=='\0') goto loadfail;
+
+  // Files with paths which include  .. or are referenced from / are verboten
+
+  if (strstr(filename, "..") || *filename=='/') goto loadfail ;
+
+  snprintf(buf, sizeof(buf)-1, "%s/%s", getscriptfolder(), filename) ;
+  fp=fopen(buf, "r") ;
+  if (!fp) goto loadfail ;
+
+  while (!feof(fp)) {
+
+    char *s, *e ;
+    int ch ;
+
+    int op=0 ;
+
+    while ( (ch=fgetc(fp)) != EOF && ch!='\n' ) {
+      if (ch!='\r' && op<sizeof(buf)-1) buf[op++]=ch ;
+    }
+    buf[op]='\0' ;
+
+    // Remove trailing white space
+
+    for (int i=strlen(buf)-1; i>0 && isspace(buf[i]); i--) {
+      if (isspace(buf[i])) buf[i]='\0' ;
+    }
+
+    // Skip leading whitespace / leading newlines etc
+
+    s=buf ;
+    while (isspace(*s)) s++ ;
+    
+
+    // If line is non-blank and note a #comment, store it
+
+    if (*s!='#' && *s!='\0') {
+
+      // entry 0 is the whole line
+
+      dosetdata(root, do_string, s, strlen(s), "/filesource/%d/0", linenum) ;
+
+      int isend=0 ;
+      int columnnum=1 ;
+
+      // entry 1 - n is the appropriate,subsection,of,the,line
+      do {
+
+        for (e=s; *e!=',' && *e!='\0'; e++) ;
+        if (*e=='\0') isend=1 ;
+
+        *e='\0' ;
+        dosetdata(root, do_string, s, strlen(s), "/filesource/%d/%d", linenum, columnnum) ;
+
+        if (!isend) s = e+1 ;
+
+        columnnum++ ;
+
+      } while (!isend) ;
+
+      linenum++ ;
+
+    }
+
+  }
+
+  fclose(fp) ;
+
+  dosetuint(root, do_uint32, 1, "/loaded") ;
+
+  return 1 ;
+
+loadfail:
+  dosetuint(root, do_uint32, 2, "/loaded") ;
+  return 0 ;
+
+}
+
+
+
+/**************
 
 //////////////////////////////////////////////////////////////////////////
 //
 // @brief Search file for line (skipping blank ones), and store value in path
 // @return true if a line was read
 
-int _ccexpandvars_readfile(DATAOBJECT *var, char *path, char *filename, int line)
+// column = 0 -> use whole line, otherwise just requested column
+
+
+//int _ccexpandvars_readfile(DATAOBJECT *var, char *path, char *filename, int line, int column) ;
+
+int _ccexpandvars_readfile(DATAOBJECT *var, char *path, char *filename, int line, int column)
 {
   if (!var || !path || !filename || line<0) return 0 ;
 
@@ -448,4 +612,8 @@ int _ccexpandvars_readfile(DATAOBJECT *var, char *path, char *filename, int line
 
   return (linenum>=0) ;
 }
+
+*************/
+
+
 
