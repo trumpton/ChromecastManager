@@ -139,27 +139,48 @@ any of the macros).</p>
 <p>Variables are written in several different ways</p>
 
 <ul>
-<li><b>$(variable)</b> or <b>$(s:variable)</b> - Variable is expressed as a string</li>
-<li><b>$(i:variable)</b> - Variable is expressed as an integer (a string would be interpreted as 0)</li>
-<li><b>$(f:variable)</b> - Variable is expressed as a floating point number</li>
-<li><b>$(b:variable)</b> - Variable is expressed as a boolean (true/false)</li>
-<li><b>@(filename)</b> or <b>@(filename:*)</b>- Value is taken from the current line in the specified 
-   file in the config folder</li>
-<li><b>@(filename:+)</b> - Value value is taken from the current line, and the line is incremented</li>
-<li><b>@(filename:n)</b> - Value is taken from line n in the specified file</li>
-<li><b>@(filename:*:c)</b> or <b>@(filename:+:c)</b> or <b>@(filename:n:c)</b>  - Value value is 
-   taken from the specified column on the specified line of the file.  Column 0 or * represents the 
-   whole line.  Columns are separated with commas</li>
+<li><b>$(variable)</b> - Value of variable</li>
+<li><b>@(filename)</b> - Value is taken from the current line in the specified file in the config folder</li>
 </ul>
 
-<p>Files must exist below the config folder - filenames starting with / or containing .. are not 
-   allowed.  File searching will follow soft links.  Note also that when counting lines in a file, 
-   blank lines, and lines starting with '#' are ignored</p>
+<p>Both variables and filenames can take a prefix to force the result to be presented in a specific
+format</p>
+
+<ul>
+<li><b>$(s:variable)</b> / <b>@(s:filename)</b> - Value presented as a string (this is the default)</li>
+<li><b>$(i:variable)</b> / <b>@(i:filename)</b> - Value presented as an integer (a string would be interpreted as 0)</li>
+<li><b>$(f:variable)</b> / <b>@(f:filename)</b> - Value presented as floating point number</li>
+<li><b>$(b:variable)</b> / <b>@(b:filename)</b> - Value presented as a boolean (true/false)</li>
+</ul>
+
+<p>The filename can also take a suffix to control which part of the file is used.</p>
+
+<ul>
+<li><b>@(filename:n)</b> - The nth line of the file is used (see not on counting line numbers below)</li>
+<li><b>@(filename:+)</b> - The current line of the file is used, however the line number is 
+     incremented afterwards</li>
+<li><b>@(filename:*:c)</b> - The cth column on the current line is used</li>
+<li><b>@(filename:n:c)</b> - The cth column on the nth line is used</li>
+<li><b>@(filename:+:c)</b> - The cth column on the current line is used, and the line is 
+     incremented afterwards</li>
+</ul>
+
+<p>Files must exist below the config folder - filenames starting with / or containing .. are 
+   not allowed.  File searching will follow soft links.</p>
+
+<p>Note also that when counting lines in a file, blank lines, and lines starting with '#' 
+   are ignored</p>
+
+<p>Lines can be separated into columns with commas.  Column 0 or * represents the 
+   whole line.  If the column does not exist, or contains no data, an empty string is 
+   used</p>
+
 
 <b>Example:</b>
 
 <pre>
 line1a,line1b,line1c
+
 line2a,,line2c
   line3a,line3b
 line4a
@@ -170,18 +191,18 @@ line4a
 <li><b>@(filename)</b> -> Line 1 -> <i>line1a,line1b,line1c</i></li>
 <li><b>@(filename:1)</b> -> Line 1 -> <i>line1a,line1b,line1c</i></li>
 <li><b>@(filename:+)</b> -> Line 1 (then increment) -> <i>line1a,line1b,line1c</i></li>
-<li><b>@(filename:*)</b> -> Line 2 -> <i>line2a,</i></li>
-<li><b>@(filename:*:1)</b> -> Line 1 First Column -> <i>line2a</i></li>
+<li><b>@(filename:*)</b> -> Line 2 -> <i>line2a,,line2c</i></li>
+<li><b>@(filename:*:1)</b> -> Line 2 First Column -> <i>line2a</i></li>
 <li><b>@(filename:*:2)</b> -> Line 2, Empty Column -> <i>""</i></li>
-<li><b>@(filename:*:4)</b> -> Invalid Column -> <i>""</i></li>
+<li><b>@(filename:*:4)</b> -> Line 2, Invalid Column -> <i>""</i></li>
 <li><b>@(filename:6)</b> -> Invalid Line -> <i>""</i></li>
 </ul>
 
 <b>Nesting of Variables</b>
 
-<p>One level of variable nesting is supported, so <b>@(scripts/file$(i:index).lst:+:1)</b> will get data
+<p>One level of variable nesting is supported, so <b>@(f:scripts/file$(i:index).lst:+:1)</b> will get data
 from the first column on the current line in file0.lst, file1.lst etc, where the number is stored
-in the <b>$(i:index)</b> variable.</p>
+in the <b>$(i:index)</b> variable and return as a floating point number.</p>
 
 <b>Updating Variables</b>
 

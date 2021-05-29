@@ -283,7 +283,7 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
 
       if (!vhvalue && !leaveifempty) vhvalue="" ;
 
-      if (vhvalue && *vhvalue!='\0') {
+      if (vhvalue) {
 
         int i=0 ;
         float f=0.0 ;
