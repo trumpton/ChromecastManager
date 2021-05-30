@@ -262,6 +262,7 @@ function enablefields()
     medialistd.style.display = "block" ;
   } else if (commands=="jsonquery") {
     deviced.style.display = "block";
+    jsonqueryd.style.display = "block" ;
     medialistd.style.display = "block" ;
   } else {
     deviced.style.display = "block";
