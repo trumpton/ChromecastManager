@@ -82,6 +82,11 @@ div.controlitem {
   padding: 2px 2px 10px 10px ;
 }
 
+div.flexwrap {
+  display: flex ;
+  flex-wrap: wrap ;
+}
+
 div.label {
   width: 150px ;
   font-weight: bold ;

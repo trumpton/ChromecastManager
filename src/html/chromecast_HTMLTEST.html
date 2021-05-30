@@ -142,17 +142,23 @@
       </div>
     </div>
 
-    <div class="controlitem">
-      <div class="label aligntop">
 
-        Message:
+    <div class="label">Message:</div>
+
+    <div class="controlitem">
+      <div class="item"><textarea id="message" placeholder="{ ... }"></textarea></div>
+    </div>
+
+    <div class="controlitem">
+ 
+      <div class="flexwrap">
 
         <div class="button-with-hint">
           <button class="button colour1" onclick="populatejson(2);">REC STATUS</button>
           <div class="hint">
             send <a href="https://developers.google.com/cast/docs/reference/messages#GetStatus" target="googlehelp">
               GET_STATUS
-            </a> request to receiver (use sender-0/receiver-0)
+            </a> request to receiver (use sender-0 / receiver-0)
           </div>
         </div>
 
@@ -161,7 +167,7 @@
             <div class="hint">
               Send <a href="https://developers.google.com/cast/docs/reference/messages#SetVolume" target="googlehelp">
                 VOLUME
-              </a> command to receiver (use sender-0/receiver-0)
+              </a> command to receiver (use sender-0 / receiver-0)
             </div>
         </div>
 
@@ -195,6 +201,15 @@
         </div>
 
         <div class="button-with-hint">
+          <button class="button colour2" onclick="populatejson(8);">QUEUE INSERT</button>
+          <div class="hint">
+            send <a href="https://developers.google.com/cast/docs/reference/web_receiver/cast.framework.messages.QueueInsertRequestData" target="googlehelp">
+              QUEUE_INSERT
+            </a> request to receiver (use sender-0 / sessionid)
+          </div>
+        </div>
+
+        <div class="button-with-hint">
             <button class="button colour2" onclick="populatejson(6);">PAUSE</button>
             <div class="hint">
               Send <a href="https://developers.google.com/cast/docs/reference/messages#Pause" target="googlehelp">
@@ -213,7 +228,7 @@
         </div>
 
       </div>
-      <div class="item"><textarea id="message" placeholder="{ ... }"></textarea></div>
+
     </div>
 
   </div>

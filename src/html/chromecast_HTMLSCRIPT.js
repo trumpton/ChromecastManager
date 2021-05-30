@@ -72,7 +72,7 @@ function processform()
       url = null ;
 
       responsetxt = "<p><b>Error parsing JSON - request not sent:</b></p>" +
-                    "<p><i>" + getsampleerror(msgscript.value, e) + "</i></p>"
+                    "<p><i>" + getsampleerror(message.value, e) + "</i></p>"
 
       document.getElementById("response").innerHTML = responsetxt ;
 
@@ -364,6 +364,30 @@ function populatejson(i)
             "  \"type\" : \"GET_STATUS\"\n" +
             "}" ;
           break ;
+
+  case 8:namespace.value = "urn:x-cast:com.google.cast.media" ;
+         sender.value = "session-0" ;
+         receiver.value = "$sessionId" ;
+         message.value =
+           "{\n  \"requestId\" : 1,\n" +
+           "  \"mediaSessionId\": 1,\n" +
+           "  \"type\" : \"QUEUE_INSERT\",\n" +
+           "  \"items\": [\n" +
+           "    {\n" +
+           "      \"autoplay\": true,\n" +
+           "      \"media\": {\n" +
+           "        \"contentId\": \"http://www.vizier.uk/mediafiles/Test2.ogg\",\n" +
+           "        \"contentType\": \"audio/mpeg\",\n" +
+           "        \"streamType\": \"LIVE\",\n" +
+           "        \"metadata\": {\n" +
+           "           \"metadataType\": 0,\n" +
+           "           \"title\": \"Test 2 Sample\"\n" +
+           "        }\n" +
+           "      }\n" +
+           "    }\n" +
+           "  ]\n" +
+           "}\n" ;
+           break ;
 
   default:message.value = "{}" ;
           break ;
