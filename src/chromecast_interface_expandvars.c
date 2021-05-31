@@ -342,36 +342,6 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// @brief Increments the value of a variable which is stored as a string
-// @param(in) vars Pointer to a variables structure
-// @param(in) path Identifies the variable within vars
-// @returns true on success
-
-int ccincrementvar(DATAOBJECT *vars, char *path)
-{
-
-  int value=0 ;
-
-  char *values = dogetdata(vars, do_string, NULL, path) ;
-
-  if (values) {
-
-    char newvalue[32] ;
-    value=atoi(values) ;
-    sprintf(newvalue, "%d", value+1) ;
-    dosetdata(vars, do_string, newvalue, strlen(newvalue), path) ;
-    return 1 ;
-
-  } else {
-
-    return 0 ;
-
-  }
-
-}
-
-//////////////////////////////////////////////////////////////////////////
-//
 // @brief Load value from a file and store in var
 //
 

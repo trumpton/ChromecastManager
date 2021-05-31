@@ -117,12 +117,34 @@ syslog</p>
 
 <b>Available Variables</b>
 
-<p>Variables are stored in one of two places:</p>
-<ul><li>At system level (these can be seen in the /serverinfo report).</li>
-<li>For each device (these can be seen in the /deviceinfo report).</li></ul>
-<p>Only the <b>$(sessionId)</b>, <b>$(lastMessageNamespace)</b> and 
+<p>Variables are stored in one of four places:</p>
+<ul>
+<li>At system level (these can be seen in the /serverinfo report).</li>
+<li>For each device (these can be seen in the /devicelist report).</li>
+<li>In the http session itself - this only exists for the duration of the session.  All variables provided in the 
+request json and the request query parameters are turned into variables.</li>
+<li>In data files - see the @() variable below.</li>
+</ul>
+
+<p>Only the <b>$(requestId)</b>, <b>$(sessionId)</b>, <b>$(lastMessageNamespace)</b> and 
 <b>$(lastMessageType)</b> variables are pre-defined for chromecast devices.  
-All other variables must be added in a macro script if required (see addwatch macro step description below).</p>
+All other variables must be added in a macro script if required (see addwatch macro 
+step description below).</p>
+
+<b>Pre-defined / current variables</b>
+
+<ul>
+<li><b>/serverinfo</b> - <a href="/serverinfo" target="serverinfo">see serverinfo report</a></li>
+<li><b>/devicelist</b> - <a href="/devicelist" target="devicelist">see devicelist report</a></li>
+<li><b>$(appId)</b> - The application ID of the current session</li>
+<li><b>$(lastMessageNamespace)</b> - The namespace of the last message received</li>
+<li><b>$(lastMessageType)</b> - The type of the last message received</b>
+<li><b>$(mediaSessionId)</b> - The sessionID of the current Media session</li>
+<li><b>$(playerState)</b> - The current state of the media player (if loaded)</li>
+<li><b>$(requestId)</b> - requestId variable - automatically increments on each send</li>
+<li><b>$(sessionId)</b> - The sessionID established through the automatic CONNECT to receiver-0</li>
+<li><b>$(statusText)</b> - The status text of the current session (if loaded)</li>
+</ul>
 
 <b>Variable Updating</b>
 
@@ -428,13 +450,13 @@ is identified on the command line when the server is launched)</p>
 </pre>
 </div>
 
-p>When launched, the query parameters and any variables identified in a POST json body
+<p>When launched, the query parameters and any variables identified in a POST json body
 are used to guide the macro script.</p>
 
 <p>Before the macro steps are executed, and optional pre-process script can be run.  This
 script takes the input json request via stdin, and outputs an updated json request via
 stdout.  Note that this takes place before any variable expansion.</p>
-<p>Example: "preprocess": "languageparse.pl \"$(serverIpAddress)\" \"$(serverPort)""</p>
+<p>Example: "preprocess": "languageparse.pl \"$(serverIpAddress)\" \"$(serverPort)\""</p>
 <p>Any output from the preprocessing script to stderr is passed as a notice to the syslog.</p>
 <p>The preprocessing script must return 0 on success.  Any other error halts execution of the macro.</p>
 
@@ -447,7 +469,7 @@ monitoring status and responding to the http client.</p>
 
 <h3>Add Watch opcode</h3>
 <p>By default, the chromecastmanager adds watches for <b>lastMessageNamespace</b>, <b>lastMessageType</b>, and
-<b>sessionId</b>.</p>
+<b>mediaSessionId<b>, <b>playerState</b>, <b>sessionId</b>, and <b>statusText</b>.</p>
 <p>Additional watches may be added by the step using the addwatch op-code</p>
 
 <p><b>label</b> - Optional step label, used for 'goto' and 'else' destinations</p>
@@ -476,12 +498,12 @@ required, use the jsonquery feature in the <a href="/test" target="playground">T
 <pre>
 {
     "label": "doaddwatch",
-    "comment": "Add Watch Example",
+    "comment": "Add Watch Example - this example entry is automatically added",
     "op": "addwatch",
-    "variable": "appId",
-    "namespace": "urn:x-cast:com.google.cast.receiver",
-    "type": "RECEIVER_STATUS",
-    "path": "/message/status/applications/0/appId",
+    "variable": "mediaSessionId",
+    "namespace": "urn:x-cast:com.google.cast.media",
+    "type": "MEDIA_STATUS",
+    "path": "/message/status/0/mediaSessionId",
     "end": false
 }
 </pre>
@@ -666,7 +688,7 @@ label and an end tag (i.e. with no opcode).
     "sender": "sender-0",
     "receiver": "receiver-0",
     "message": {
-        "requestId": 1,
+        "requestId": $(requestId),
         "type": "SET_VOLUME",
         "volume": {
             "level": 0.1
@@ -685,7 +707,7 @@ label and an end tag (i.e. with no opcode).
     "namespace": "urn:x-cast:com.google.cast.receiver",
     "datatype": 0,
     "message": {
-        "requestId": 1,
+        "requestId": $(requestId),
         "status": {
             "userEq": {
                 "high_shelf": {
@@ -730,7 +752,7 @@ label and an end tag (i.e. with no opcode).
     "receiver": "receiver-0",
     "message": {
         "type": "LAUNCH",
-        "requestId": 3,
+        "requestId": $(requestId),
         "appId": "CC1AD845"
     }
 }
@@ -746,7 +768,7 @@ label and an end tag (i.e. with no opcode).
     "namespace": "urn:x-cast:com.google.cast.receiver",
     "datatype": 0,
     "message": {
-        "requestId": 3,
+        "requestId": $(requestId),
         "status": {
             "applications": [
                 {
@@ -809,8 +831,6 @@ which should be used for all communication with the application.  In order to te
 specific media stream, it is necessary to open a new connection (note the different sender and receiver).</p>
 <p>Note also that all of the sessionIDs for devices which are currently running applications are reported
 in the /devicelist report</p>
-<p>Note also that contact manager automatically establishes a link to the first session using <i>session-0</i> as
-the sender, so in this example, the CONNECT step is not strictly necessary, and the sequence could simply use <i>session-0</i> as the sender</p>
 
 </div>
 
@@ -841,7 +861,7 @@ be used instead of the actual value, e.g. in this case <b>98e301ef-305d-4edc-9ac
     "sender": "session-1",
     "receiver": "<b>$(sessionId)</b>",
     "message": {
-        "requestId": 4,
+        "requestId": $(requestId),
         "type": "LOAD",
         "autoplay": true,
         "media": {

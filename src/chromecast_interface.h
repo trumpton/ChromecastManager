@@ -60,8 +60,6 @@ typedef struct {
 
   NET *ssl ;
 
-  int requestid ;
-
   enum { REC_START=0, REC_SIZE, REC_BODY, REC_DONE, REC_PARSED } recvstate ;
 
   int recvsize ;
@@ -286,15 +284,21 @@ char * ccgetwatchvarnameat(CHROMECAST *cch, int index) ;
 char * ccgetwatchat(CHROMECAST *cch, int index) ;
 
 
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Increments the seq (requestId) stored in vars
+// @param(in) vars Pointer to a variables structure
+// @returns true on success
+
+int ccincrementrequestid(DATAOBJECT *vars) ;
 
 //////////////////////////////////////////////////////////////////////////
 //
-// @brief Increments the value of a variable which is stored as a string
+// @brief Gets the requestId value stored in vars
 // @param(in) vars Pointer to a variables structure
-// @param(in) path Identifies the variable within vars
-// @returns true on success
+// @returns new value
 
-int ccincrementvar(DATAOBJECT *vars, char *path) ;
+int ccgetrequestid(DATAOBJECT *vars) ;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -331,12 +335,6 @@ DATAOBJECT * ccgetmessage(CHROMECAST *cch) ;
 
 DATAOBJECT *ccgetsentmessage(CHROMECAST *cch) ;
 
-
-//////////////////////////////////////////////////////////////////////////
-//
-
-int ccnextrequestid(CHROMECAST *cch) ;
-int cclastrequestid(CHROMECAST *cch) ;
 
 
 //////////////////////////////////////////////////////////////////////////

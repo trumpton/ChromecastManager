@@ -3,6 +3,15 @@
 //
 //
 
+// requestId and mediaSessionId are ints, and 
+// therefore any variable must be expanded before
+// conversion to json to prevent errors.  These
+// "variables" are expanded in the javascript rather
+// than being passed to the server.
+
+var seq = 1 ;
+var mediasessionid = 1 ;
+
 function processform()
 {
   var device = document.getElementById("device");
@@ -53,7 +62,16 @@ function processform()
 
     try {
 
-      var messagej = JSON.parse(message.value) ;
+      var json = message.value ;
+
+      // Process $(mediaSessionId) and $(requestId) variable before json parsing
+
+      json = json.replace("$(mediaSessionId)", mediasessionid) ;
+      json = json.replace("$(requestId)", seq) ;
+      seq++ ;
+
+
+      var messagej = JSON.parse(json) ;
 
 
       headers['Content-Type'] = "application/json" ;
@@ -171,6 +189,18 @@ function processform()
         responsetxt = "<p><b>Error receiving response:</b></p>" +
                       "<p><pre>" + text + "</pre></p>" ;
 
+      }
+
+      // Try to capture mediasessionid
+
+      try {
+
+        var s = json.message.status[0].mediaSessionId ;
+        if (s) {
+          mediasessionid = s;
+        }
+
+      } catch (e) {
       }
 
       if (json) {
@@ -296,7 +326,7 @@ function populatejson(i)
           sender.value = "sender-0" ;
           receiver.value = "receiver-0" ;
           message.value = 
-            "{\n  \"requestId\" : 1,\n" +
+            "{\n  \"requestId\" : $(requestId),\n" +
             "  \"type\" : \"GET_STATUS\"\n" +
             "}" ;
           break ;
@@ -306,7 +336,7 @@ function populatejson(i)
           receiver.value = "receiver-0" ;
           message.value =
             "{\n" +
-            "  \"requestId\" : 1,\n" +
+            "  \"requestId\" : $(requestId),\n" +
             "  \"type\" : \"SET_VOLUME\",\n" +
             "  \"volume\" : {\n" +
             "    \"level\" : 0.1\n" +
@@ -320,7 +350,7 @@ function populatejson(i)
           message.value =
             "{\n" +
             "  \"type\": \"LAUNCH\",\n" +
-            "  \"requestId\": 2,\n" +
+            "  \"requestId\": $(requestId),\n" +
             "  \"appId\": \"CC1AD845\"\n" +
             "}" ;
             break ;
@@ -330,9 +360,9 @@ function populatejson(i)
           receiver.value = "$sessionId" ;
           message.value = 
             "{\n" +
-            "  \"requestId\": 1,\n" +
+            "  \"requestId\": $(requestId),\n" +
             "  \"type\": \"LOAD\",\n" +
-            "  \"autoplay\": true,\n" +
+            "  \"autoplay\": false,\n" +
             "  \"media\": {\n" +
             "    \"contentId\": \"http://www.vizier.uk/mediafiles/Test1.ogg\",\n" +
             "    \"streamType\": \"LIVE\",\n" +
@@ -351,8 +381,19 @@ function populatejson(i)
           message.value =
             "{\n" +
             "  \"type\": \"PAUSE\",\n" +
-            "  \"mediaSessionId\": \"media_session_id\",\n" +
-            "  \"requestId\": 2\n" +
+            "  \"mediaSessionId\": $(mediaSessionId),\n" +
+            "  \"requestId\": $(requestId)\n" +
+            "}" ;
+             break ;
+
+  case 9: namespace.value = "urn:x-cast:com.google.cast.media" ;
+          sender.value = "session-0" ;
+          receiver.value = "$sessionId" ;
+          message.value =
+            "{\n" +
+            "  \"type\": \"PLAY\",\n" +
+            "  \"mediaSessionId\": $(mediaSessionId),\n" +
+            "  \"requestId\": $(requestId)\n" +
             "}" ;
              break ;
 
@@ -360,7 +401,7 @@ function populatejson(i)
           sender.value = "session-0" ;
           receiver.value = "$sessionId" ;
           message.value = 
-            "{\n  \"requestId\" : 1,\n" +
+            "{\n  \"requestId\" : $(requestId),\n" +
             "  \"type\" : \"GET_STATUS\"\n" +
             "}" ;
           break ;
@@ -369,7 +410,7 @@ function populatejson(i)
          sender.value = "session-0" ;
          receiver.value = "$sessionId" ;
          message.value =
-           "{\n  \"requestId\" : 1,\n" +
+           "{\n  \"requestId\" : $(requestId),\n" +
            "  \"mediaSessionId\": 1,\n" +
            "  \"type\" : \"QUEUE_INSERT\",\n" +
            "  \"items\": [\n" +

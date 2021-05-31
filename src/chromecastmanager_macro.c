@@ -34,12 +34,6 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
   cch->macro=donew() ;
 
   /////////////////////////////////////////////////////
-  // Initialise sequence variable (stored as string)
-
-  dosetdata(cch->httpsessionvars, do_string, "seq", 3, "/seq/variable") ;
-  dosetdata(cch->httpsessionvars, do_string, "0", 1, "/seq/value") ;
-
-  /////////////////////////////////////////////////////
   // Parse macro (without parsing unquoted as they may contain variables)
 
   if (!dofromjsonu(cch->macro, macro) ) {
@@ -130,10 +124,6 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
   if (!cch) return 0 ;
   if (!cch->macro) return 1 ;
-
-  // increment Sequence Counter
-
-  ccincrementvar(cch->httpsessionvars, "/seq/value") ;
 
   DATAOBJECT *thisstep ;
   int num = cch->macroindex-1 ;

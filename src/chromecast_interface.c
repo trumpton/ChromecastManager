@@ -35,18 +35,6 @@ unsigned char *_cc_uint32tobe(unsigned int n) ;
 unsigned int _cc_betouint32(char *buf) ;
 
 
-int ccnextrequestid(CHROMECAST *cch)
-{
-  if (!cch) return 0 ;
-  else return (++cch->requestid) ;
-}
-
-int cclastrequestid(CHROMECAST *cch)
-{
-  if (!cch) return 0 ;
-  else return (cch->requestid) ;
-}
-
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -85,6 +73,7 @@ CHROMECAST *ccnew()
 
   cch->vars = donew() ;
 
+  /////////////////////////////////////////////////////
   // Add Default Watches
 
   ccaddwatch( cch, "sessionId",
@@ -92,7 +81,6 @@ CHROMECAST *ccnew()
               "RECEIVER_STATUS",
               "/message/status/applications/0/sessionId") ;
 
-/*
   ccaddwatch( cch, "appId",
               "urn:x-cast:com.google.cast.receiver", 
               "RECEIVER_STATUS",
@@ -112,7 +100,18 @@ CHROMECAST *ccnew()
               "urn:x-cast:com.google.cast.media", 
               "MEDIA_STATUS",
               "/message/status/0/mediaSessionId") ;
-*/
+
+  /////////////////////////////////////////////////////
+  // Initialise variables not associated with a specific namespace
+
+  dosetdata(cch->vars, do_string, "requestId", 9, "/requestId/variable") ;
+  dosetdata(cch->vars, do_string, "1", 1, "/requestId/value") ;
+
+  dosetdata(cch->vars, do_string, "lastMessageType", 15, "/lastMessageType/variable") ;
+  dosetdata(cch->vars, do_string, "-", 1, "/lastMessageType/value") ;
+
+  dosetdata(cch->vars, do_string, "lastMessageNamespace", 20, "/lastMessageNamespace/variable") ;
+  dosetdata(cch->vars, do_string, "-", 1, "/lastMessageNamespace/value") ;
 
   return cch ;
 }
@@ -612,30 +611,6 @@ int _cc_processinputmessage(CHROMECAST *cch)
   }
 
 
-/*
-  // Clear relevant variables
-
-  varindex=0 ;
-
-  if (msgnamespace && msgtype) while ( var = dochild(donoden(cch->vars, varindex)) ) {
-
-    // Get the variable details
-
-    char *varnamespace = dogetdata(var, do_string, NULL, "/namespace") ;
-    char *vartype = dogetdata(var, do_string, NULL, "/type") ;
-
-    if (varnamespace && vartype && strcmp(msgnamespace,varnamespace)==0 && strcmp(msgtype, vartype)==0) {
-
-      dosetdata(var, do_string, "", 0, "/value") ;
-
-    }
-
-    varindex++ ;
-
-  }
-*/
-
-
   // Walk through each variable node
 
   varindex=0 ;
@@ -684,28 +659,6 @@ int _cc_processinputmessage(CHROMECAST *cch)
             snprintf(buf,sizeof(buf),"%ld",i) ;
             msgvalue=buf ;
             break ;
-          }
-
-
-          // If the variable is the sessionId, then establish a session-0 connection
-
-          if ( strcmp(variable, "sessionId")==0 && 
-               (!value || strcmp(value, msgvalue)!=0) ) {
-
-            if ( ccsendmessage( cch, "session-0", msgvalue, 
-                 CC_NAMESPACE_CONNECTION, "{\"type\":\"CONNECT\"}") ) {
-
-              ccsendmessage( cch, "session-0", msgvalue,
-                             CC_NAMESPACE_MEDIA, 
-                             "{\"type\":\"GET_STATUS\",\"requestId\":%d}", 
-                             (++cch->requestid) ) ;
-
-              logmsg( LOG_INFO, "Establishing session-0 / %s connection to chromecast at %s:%d",
-                      msgvalue,
-                      ccipaddress(cch), ccpeerport(cch) ) ;
-
-            }
-
           }
 
           // Store the string as a variable
@@ -791,6 +744,8 @@ DATAOBJECT *ccgetsentmessage(CHROMECAST *cch)
 
 int ccsendconnectionmessage(CHROMECAST *cch, char *type)
 {
+  if (!cch || !type) return 0 ;
+
   if (ccsendmessage( cch, "sender-0", "receiver-0", 
               CC_NAMESPACE_CONNECTION, 
               "{\"type\":\"%s\"}", type)) {
@@ -802,6 +757,8 @@ int ccsendconnectionmessage(CHROMECAST *cch, char *type)
 
 int ccsendheartbeatmessage(CHROMECAST *cch, char *type)
 {
+  if (!cch || !type) return 0 ;
+
   if (ccsendmessage( cch, "Tr@n$p0rt-0", "Tr@n$p0rt-0",
               CC_NAMESPACE_HEARTBEAT, 
               "{\"type\":\"%s\"}", type)) {
@@ -814,15 +771,25 @@ int ccsendheartbeatmessage(CHROMECAST *cch, char *type)
 
 int ccsendreceivermessage(CHROMECAST *cch, char *type)
 {
+
+  if (!cch || !type || !cch->vars) return 0 ;
+
+  int requestId = ccgetrequestid(cch->vars) ;
+
   if (ccsendmessage( cch,  "sender-0", "receiver-0",
               CC_NAMESPACE_RECEIVER, 
               "{\"type\":\"%s\",\"requestId\":%d}", 
-              type, (++cch->requestid))) {
+              type, requestId)) {
 
-    return cch->requestid ;
+    return 1 ;
+
   } else {
+
     return 0 ;
+
   }
+
+
 }
 
 
@@ -927,6 +894,10 @@ int ccsendmessage(CHROMECAST *cch, char *sender, char *receiver, char *namespace
 
   mem_free(messagebuf) ;
 
+  // Increment request id
+
+  ccincrementrequestid(cch->vars) ;
+
   return (r1==4 && r2==len) ;
 
 }
@@ -963,6 +934,40 @@ unsigned char *_cc_uint32tobe(unsigned int n)
     n>>=8 ;
   }
   return r ;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Increments the seq (requestId) stored in vars
+// @param(in) vars Pointer to a variables structure
+// @returns true on success
+
+int ccincrementrequestid(DATAOBJECT *vars)
+{
+
+  char newvalues[32] ;
+
+  int value = ccgetrequestid(vars) ;
+  sprintf(newvalues, "%d", value + 1) ;
+
+  dosetdata(vars, do_string, newvalues, strlen(newvalues), "/requestId/value") ;
+
+  return 1 ;
+
+}
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Gets the requestId value stored in vars
+// @param(in) vars Pointer to a variables structure
+// @returns new value
+
+int ccgetrequestid(DATAOBJECT *vars)
+{
+  char *values = dogetdata(vars, do_string, NULL, "/requestId/value") ;
+  if (!values) values="0" ;
+  return atoi(values) ;
 }
 
 

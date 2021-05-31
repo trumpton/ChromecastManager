@@ -59,7 +59,6 @@ int chromecast_device_response_process(CHROMECAST *cch, HTTPD *httpsh)
   char *receiver = dogetdata(doh, do_string, NULL, "/receiver") ;
   unsigned long int requestid = 0 ;
   dogetuint(doh, do_int64, &requestid, "/message/requestId") ;
-  int lastrequestid = cclastrequestid(cch) ;
 
   // Sent message parameters
 
