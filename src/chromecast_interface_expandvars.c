@@ -3,11 +3,13 @@
 //
 //
 
-#include <stdio.h>
+#include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <unistd.h>
 
+#include "libnet/httpc.h"
 #include "libtools/mem.h"
 #include "libtools/str.h"
 #include "libtools/httpd.h"
@@ -19,7 +21,11 @@ char *getscriptfolder() ;
 
 // Functions to extract data from a file
 int _ccexpandvars_updatecache(DATAOBJECT *var, int suffixline, int suffixcolumn) ;
-int _ccexpandvars_loadfile(DATAOBJECT *root) ;
+
+int _ccexpandvars_loaddata(DATAOBJECT *root) ;
+int _ccexpandvars_readfromfile(char *filename, char **buf, int *buflen) ;
+int _ccexpandvars_readfromhttp(char *filename, char **buf, int *buflen) ;
+
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -124,6 +130,7 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
     int INCREMENT = -1 ; // suffixline constant
     int CURRENT = 0 ;    // suffixline constant
     int suffixcolumn = 0 ;
+    int isfile = 0 ;
 
     if (buf[p]=='\\') {
       p++ ;
@@ -137,14 +144,9 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
 
       // Capture type
 
-      if (buf[p]=='$' && buf[p+1]=='(') {
-        type = 's' ;
-      }
+      isfile = (buf[p]=='@') ;
 
-      if (buf[p]=='@' && buf[p+1]=='(') {
-        type = '@' ;
-      }
-
+      type = 's' ;
       if (buf[p+2]!='\0' && buf[p+3]==':') {
         type=buf[p+2] ;
         varlen=4 ;
@@ -156,9 +158,24 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
       // Copy variable
 
       int s=0 ;
+      int freecopy=0 ;
 
-      while ( buf[p+varlen]!='\n' && buf[p+varlen] != '\0' && buf[p+varlen] != ')' && buf[p+varlen] != ':' &&
-              buf[p+varlen] != '$' && buf[p+varlen] !='@' && buf[p+varlen] != '(' && s < MAXVARLABELLEN-1) {
+      // http / https contain colons which must be copied
+      // as part of the variable, and not used as terminators
+
+      if (isfile && strncmp(&buf[p+varlen],"http://",7)==0) {
+        freecopy=7 ;
+      } else if (isfile && strncmp(&buf[p+varlen],"https://",8)==0) {
+        freecopy=8 ;
+      }
+
+      // Copy variable
+
+      while ( ( s < freecopy ) || 
+              ( buf[p+varlen]!='\n' && buf[p+varlen] != '\0' && 
+                buf[p+varlen] != ')' && buf[p+varlen] != ':' &&
+                buf[p+varlen] != '$' && buf[p+varlen] !='@' && 
+                buf[p+varlen] != '(' && s < MAXVARLABELLEN-1 ) ) {
         variable[s] = buf[p+varlen] ;
         varlen++ ;
         s++ ;
@@ -180,6 +197,8 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
         // Columnnumber = missing -> First column is used
         // Columnnumber = 0 or * -> whole line is used
         // Linenumber or Columnnumber is digit -> appropriate line and column is used
+
+        // Terminate variable
 
         variable[s]='\0' ;
         varlen++ ;
@@ -243,41 +262,27 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
       char *vhvalue=NULL ;
       DATAOBJECT *vh ;
 
-      int i=0 ;
-      while (!vhvalue && (vh=dochild(donoden(vars,i))) ) {
-
-        // Get variable data
-
-        char *vhvariable = dogetdata(vh, do_string, NULL, "/variable") ;
-
-        if (vhvariable && strcmp(vhvariable, variable)==0) {
-
-            if (type=='@') {
-
-                _ccexpandvars_updatecache(vh, suffixline, suffixcolumn) ;
-
-            }
-
-            vhvalue = dogetdata(vh, do_string, NULL, "/value") ;
-
-        }   
-
-        i++ ;   
-
-      }
-
       //////////////////////////////
-      // Add @ variable if not found
+      // Get variable value
 
-      if (type=='@' && !vhvalue) {
+      if (isfile) {
 
-        dosetdata(vars, do_string, variable, strlen(variable), "/%s/variable", variable) ;
-        vh = dofindnode(vars, "/%s", variable) ;
+        // Create / find @variable
+        vh = ccsetvariable(vars, variable, "") ;
         _ccexpandvars_updatecache(vh, suffixline, suffixcolumn) ;
-        vhvalue = dogetdata(vh, do_string, NULL, "/value") ;
+
+      } else {
+
+        // find $variable
+        vh = ccfindvariable(vars, variable) ;
 
       }
 
+      // Get the value
+      if (vh) {
+        vhvalue = dogetdata(vh, do_string, NULL, "/value") ;
+      }
+    
       //////////////////////////////
       // Do substitution
 
@@ -316,7 +321,6 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
 
           default:
           case 's':
-          case '@':
             strcpy(rvalue, vhvalue) ;
             str_replaceall(rvalue, "\"", "\\\"") ;
             break ;
@@ -372,7 +376,7 @@ int _ccexpandvars_updatecache(DATAOBJECT *var, int suffixline, int suffixcolumn)
   ////////////////////////////////////////////
   // Get cached value and update as needed
 
-  if (_ccexpandvars_loadfile(var)) {
+  if (_ccexpandvars_loaddata(var)) {
 
     char *value = dogetdata(var, do_string, NULL, "/filesource/%d/%d", line, suffixcolumn) ;
     if (!value) { value="" ; }
@@ -406,19 +410,22 @@ int _ccexpandvars_updatecache(DATAOBJECT *var, int suffixline, int suffixcolumn)
 
 }
 
+
+
 //////////////////////////////////////////////////////////////////////////
 //
-// @brief Load data from file into root variable object
-// @param(in) root Data object in which to store file
-// @param(in) filename - name of file in the config folder
+// @brief Load data from file or http into root variable object
+// @param(in) root Data object in which to store the information
+// @return true on success
 //
 
-int _ccexpandvars_loadfile(DATAOBJECT *root)
+int _ccexpandvars_loaddata(DATAOBJECT *root)
 {
   FILE *fp ;
   int linenum=1 ;
   char *filename=NULL ;
-  char buf[1024] ;
+  char *buf ;
+  int buflen ;
 
   if (!root) return 0 ;
 
@@ -434,57 +441,57 @@ int _ccexpandvars_loadfile(DATAOBJECT *root)
   filename = dogetdata(root, do_string, NULL, "/variable") ;
   if (!filename || *filename=='\0') goto loadfail;
 
-  // Files with paths which include  .. or are referenced from / are verboten
+  buf=NULL ;
+  buflen=0 ;
 
-  if (strstr(filename, "..") || *filename=='/') goto loadfail ;
+  if (strstr(filename, "http://") || strstr(filename, "https://")) {
 
-  snprintf(buf, sizeof(buf)-1, "%s/%s", getscriptfolder(), filename) ;
-  fp=fopen(buf, "r") ;
-  if (!fp) goto loadfail ;
+    _ccexpandvars_readfromhttp(filename, &buf, &buflen) ;
 
-  while (!feof(fp)) {
+  } else {
 
-    char *s, *e ;
-    int ch ;
+    _ccexpandvars_readfromfile(filename, &buf, &buflen) ;
 
-    int op=0 ;
+  }
 
-    while ( (ch=fgetc(fp)) != EOF && ch!='\n' ) {
-      if (ch!='\r' && op<sizeof(buf)-1) buf[op++]=ch ;
-    }
-    buf[op]='\0' ;
+  int s=0, e, nexts ;
 
-    // Remove trailing white space
+  while (buf[s]!='\0') {
 
-    for (int i=strlen(buf)-1; i>0 && isspace(buf[i]); i--) {
-      if (isspace(buf[i])) buf[i]='\0' ;
-    }
+    // Skip leading spaces
 
-    // Skip leading whitespace / leading newlines etc
+    while (isspace(buf[s])) s++ ;
 
-    s=buf ;
-    while (isspace(*s)) s++ ;
-    
+    // Locate end of line
 
-    // If line is non-blank and note a #comment, store it
+    e=s ;
+    while (buf[e]!='\0' && buf[e]!='\n' && buf[e]!='\r') e++ ;
+    if (buf[e]=='\0') nexts=e ;
+    else nexts=e+1 ;
 
-    if (*s!='#' && *s!='\0') {
+    // Unskip trailing spaces
+
+    while (isspace(buf[e])) e-- ;
+    buf[e+1]='\0' ;
+
+    if (buf[s]!='#' && buf[s]!='\0') {
 
       // entry 0 is the whole line
 
-      dosetdata(root, do_string, s, strlen(s), "/filesource/%d/0", linenum) ;
+      dosetdata(root, do_string, &buf[s], strlen(&buf[s]), "/filesource/%d/0", linenum) ;
 
       int isend=0 ;
       int columnnum=1 ;
 
       // entry 1 - n is the appropriate,subsection,of,the,line
+
       do {
 
-        for (e=s; *e!=',' && *e!='\0'; e++) ;
-        if (*e=='\0') isend=1 ;
+        for (e=s; buf[e]!=',' && buf[e]!='\0'; e++) ;
+        if (buf[e]=='\0') isend=1 ;
 
-        *e='\0' ;
-        dosetdata(root, do_string, s, strlen(s), "/filesource/%d/%d", linenum, columnnum) ;
+        buf[e]='\0' ;
+        dosetdata(root, do_string, &buf[s], strlen(&buf[s]), "/filesource/%d/%d", linenum, columnnum) ;
 
         if (!isend) s = e+1 ;
 
@@ -496,94 +503,121 @@ int _ccexpandvars_loadfile(DATAOBJECT *root)
 
     }
 
+    s = nexts ;
+
   }
 
-  fclose(fp) ;
-
+  if (buf) free(buf) ;
   dosetuint(root, do_uint32, 1, "/loaded") ;
-
   return 1 ;
 
 loadfail:
+
+  if (buf) free(buf) ;
   dosetuint(root, do_uint32, 2, "/loaded") ;
   return 0 ;
 
 }
 
 
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Read contents of file into buffer
+// @param(in) filename Pointer to filename in input script
+// @param(out) buf Pointer to output storage buffer
+// @param(in) maxlen maximum length of buffe
+// @return true on success
+//
 
-/**************
+int _ccexpandvars_readfromfile(char *filename, char **buf, int *buflen)
+{
+
+  if (!filename || !buf || !buflen) goto loadfail;
+
+  if (*buf) free(*buf) ;
+  (*buf)=NULL ;
+  (*buflen)=0 ;
+
+  char filepath[1024] ;
+  int fd=-1 ;
+  int r=0 ;
+
+  // Files with paths which include  .. or are referenced from / are verboten
+
+  if (strstr(filename, "..") || *filename=='/') goto loadfail ;
+
+  // Open file
+
+  snprintf(filepath, sizeof(filepath)-1, "%s/%s", getscriptfolder(), filename) ;
+  fd=open(filepath, O_RDONLY);
+  if (fd<0) goto loadfail ;
+
+  // Load file contents into buf
+
+  do {
+
+    // Always allocate an extra byte to enable \0 termination
+
+    (*buf) = realloc( (*buf), (*buflen)+256 ) ;
+    if (!(*buf)) goto loadfail ;
+
+    // Read and append to buffer
+
+    r = read(fd, &(*buf)[(*buflen)], 255) ;
+
+    // Increment buffer length
+
+    if (r>0) {
+      (*buflen)+=r ;
+    }
+
+  } while (r>0) ;
+
+  // Terminate and close
+
+  (*buf)[(*buflen)]='\0' ;
+
+  close(fd) ;
+
+  return 1 ;
+
+loadfail:
+
+  if (fd>=0) close(fd) ;
+
+  return 0 ;
+
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 //
-// @brief Search file for line (skipping blank ones), and store value in path
-// @return true if a line was read
+// @brief Read contents of http session into buffer
+// @param(in) filename Pointer to filename in input script
+// @param(out) buf Pointer to output storage buffer
+// @param(in) maxlen maximum length of buffe
+// @return true on success
+//
 
-// column = 0 -> use whole line, otherwise just requested column
-
-
-//int _ccexpandvars_readfile(DATAOBJECT *var, char *path, char *filename, int line, int column) ;
-
-int _ccexpandvars_readfile(DATAOBJECT *var, char *path, char *filename, int line, int column)
+int _ccexpandvars_readfromhttp(char *filename, char **buf, int *buflen)
 {
-  if (!var || !path || !filename || line<0) return 0 ;
 
-  // Files with paths which include  .. or are referenced from / are verboten
-  if (strstr(filename, "..") || *filename=='/') return 0 ;
+  if (!filename || !buf || !buflen) goto loadfail;
 
-  FILE *fp ;
-  char buf[1024] ;
-  int linenum=1 ;
-  int lastwasnewline=0 ;
-  int ch=0 ;
-  int op=0 ;
+  if (*buf) free(*buf) ;
+  (*buf)=NULL ;
+  (*buflen)=0 ;
 
-  snprintf(buf, sizeof(buf)-1, "%s/%s", getscriptfolder(), filename) ;
-  fp=fopen(buf, "r") ;
-  if (!fp) return 0 ;
+  int r = httpsend( GET, filename, NULL, NULL, NULL, buf, buflen) ;
 
-  // Skip to the requested line
+  return (r==200) ;
 
-  if (linenum<line) do {
-    ch = fgetc(fp) ;
-    switch (ch) {
-    case EOF:
-      linenum=-1 ;
-      break ;
-    case '\r':
-      break ;
-    case '\n':
-      if (!lastwasnewline) linenum++ ;
-      lastwasnewline=1 ;
-      break ;
-    default:
-      lastwasnewline=0 ;
-    }
-  } while (linenum>=0 && linenum!=line) ;
+loadfail:
 
-  // Copy the data across to buf
+  return 0 ;
 
-  op=0 ;
-
-  if (linenum>=0) {
-
-    while ( (ch=fgetc(fp)) != EOF && ch!='\n' ) {
-      if (ch!='\r' && op<sizeof(buf)-1) buf[op++]=ch ;
-    }
-  }
-
-  buf[op]='\0' ;
-
-  // Save buf in variable's data
-
-  dosetdata(var, do_string, buf, strlen(buf), path) ;
-
-  fclose(fp) ;
-
-  return (linenum>=0) ;
 }
 
-*************/
 
 
 

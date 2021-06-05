@@ -113,16 +113,17 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
     char *variable ;
     int svi=1 ;
     while (variable=hgeturiparamname(httpsh, svi++)) {
-      dosetdata(sessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
+      dosetdata(sessionvars, do_string, variable, strlen(variable), "/+/variable") ; 
       char *value = hgeturiparamstr(httpsh, variable) ;
-      if (value) dosetdata(sessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
+      if (value) dosetdata(sessionvars, do_string, value, strlen(value), "/*/value") ; 
     }
 
     // parse json body into dataobject and extract device name if present
 
     if (!chromecast_device_expand_json(body, hgetbody(httpsh), sessionvars )) goto jsonqueryfail ;
 
-    char *device=dogetdata(sessionvars, do_string, NULL, "/device/value") ;
+    char *device=ccgetvariable(sessionvars, "device") ;
+
     char *friendlyname=NULL ;
     if (device) { 
       index = chromecast_finddevice(device, maxcc) ; 
@@ -185,9 +186,8 @@ jsonqueryfail:
     char *variable ;
     int svi=1 ;
     while (variable=hgeturiparamname(httpsh, svi++)) {
-      dosetdata(sessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
       char *value = hgeturiparamstr(httpsh, variable) ;
-      if (value) dosetdata(sessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
+      ccsetvariable(sessionvars, variable, value) ;
     }
 
 
@@ -264,8 +264,9 @@ jsonqueryfail:
 
     // Find the device
 
-    char *device=dogetdata(sessionvars, do_string, NULL, "/device/value") ;
+    char *device=ccgetvariable(sessionvars, "device") ;
     char *friendlyname=NULL ;
+
     if (device) { 
       index = chromecast_finddevice(device, maxcc) ; 
       friendlyname = chromecast_mdns_at(index)->friendlyname ;
@@ -437,9 +438,9 @@ int chromecast_device_update_sessionvars(DATAOBJECT *sessionvars, char *json)
     char *value = donodedata(p, NULL) ;
 
     if (variable && value) {
-      dosetdata(sessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
-      dosetdata(sessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
+      ccsetvariable(sessionvars, variable, value) ;
     }
+
   }
 
 
@@ -477,17 +478,10 @@ int chromecast_device_expand_json(DATAOBJECT *body, char *json, DATAOBJECT *sess
 
   }
 
-  // Search for /device
+  // Search for /device and store as a variable in sessionvars
 
-  char variable[] = "device" ;
-  char *value = dogetdata(body, do_string, NULL, "/%s", variable) ;
-
-  // Store as variable in sessionvars
-
-  if (value) { 
-      dosetdata(sessionvars, do_string, variable, strlen(variable), "/%s/variable", variable) ; 
-      dosetdata(sessionvars, do_string, value, strlen(value), "/%s/value", variable) ; 
-  }
+  char *value = dogetdata(body, do_string, NULL, "/device") ;
+  ccsetvariable(sessionvars, "device", value) ;
 
   return 1 ;
 }
@@ -594,27 +588,27 @@ int chromecast_device_request_process_serverinfo(HTTPD *httpsh)
                "{\n"
                "  \"vars\": {\n"
                "    \"serverIpAddress\": \"%s\",\n"
-               "    \"serverPort\": %d\n"
+               "    \"serverPort\": %d,\n"
+               "    \"logo\": \"http://%s:%d/logo.png\",\n" 
+               "    \"pp\": \"http://%s:%d/pp.png\",\n"
+               "    \"img1\": \"http://%s:%d/test1.jpg\",\n"
+               "    \"img2\": \"http://%s:%d/test2.jpg\",\n"
+               "    \"test1\": \"http://%s:%d/test1.ogg\",\n"
+               "    \"test2\": \"http://%s:%d/test2.ogg\",\n"
+               "    \"alert1\": \"http://%s:%d/alert1.ogg\",\n" 
+               "    \"alert2\": \"http://%s:%d/alert2.ogg\"\n"
                "  },\n"
-               "  \"media\": {\n"
-               "      \"%s\": \"http://%s:%d/%s\",\n"
-               "      \"%s\": \"http://%s:%d/%s\",\n"
-               "      \"%s\": \"http://%s:%d/%s\",\n"
-               "      \"%s\": \"http://%s:%d/%s\",\n"
-               "      \"%s\": \"http://%s:%d/%s\",\n"
-               "      \"%s\": \"http://%s:%d/%s\",\n"
-               "      \"%s\": \"http://%s:%d/%s\"\n"
-               "  },\n"
-               "  \"scripts\": [",
+               "  \"scripts\": [\n",
                ip, port,
-               "logo",   ip, port, "logo.png", 
-               "pp",     ip, port, "pp.png", 
-               "img",     ip, port, "testimg1.jpg", 
-               "test1", ip, port, "test1.ogg", 
-               "test2", ip, port, "test2.ogg", 
-               "alert1", ip, port, "alert1.ogg", 
-               "alert2", ip, port, "alert2.ogg") ;
- 
+               ip, port,
+               ip, port,
+               ip, port,
+               ip, port,
+               ip, port,
+               ip, port,
+               ip, port,
+               ip, port) ;
+
   DIR *dir;
   struct dirent *ent;
   int index=0 ;

@@ -104,14 +104,14 @@ CHROMECAST *ccnew()
   /////////////////////////////////////////////////////
   // Initialise variables not associated with a specific namespace
 
-  dosetdata(cch->vars, do_string, "requestId", 9, "/requestId/variable") ;
-  dosetdata(cch->vars, do_string, "1", 1, "/requestId/value") ;
+  dosetdata(cch->vars, do_string, "requestId", 9, "/+/variable") ;
+  dosetdata(cch->vars, do_string, "1", 1, "/*/value") ;
 
-  dosetdata(cch->vars, do_string, "lastMessageType", 15, "/lastMessageType/variable") ;
-  dosetdata(cch->vars, do_string, "-", 1, "/lastMessageType/value") ;
+  dosetdata(cch->vars, do_string, "lastMessageType", 15, "/+/variable") ;
+  dosetdata(cch->vars, do_string, "-", 1, "/*/value") ;
 
-  dosetdata(cch->vars, do_string, "lastMessageNamespace", 20, "/lastMessageNamespace/variable") ;
-  dosetdata(cch->vars, do_string, "-", 1, "/lastMessageNamespace/value") ;
+  dosetdata(cch->vars, do_string, "lastMessageNamespace", 20, "/+/variable") ;
+  dosetdata(cch->vars, do_string, "-", 1, "/*/value") ;
 
   return cch ;
 }
@@ -439,11 +439,17 @@ int ccaddwatch(CHROMECAST *cch, char *variable, char *namespace, char *type, cha
 {
   if (!cch || !cch->vars) return 0 ;
 
-  dosetdata(cch->vars, do_string, variable, strlen(variable), "/%s/variable", variable) ;
-  dosetdata(cch->vars, do_string, path, strlen(path), "/%s/path", variable) ;
-  dosetdata(cch->vars, do_string, namespace, strlen(namespace), "/%s/namespace", variable) ;
-  dosetdata(cch->vars, do_string, type, strlen(type), "/%s/type", variable) ;
-  dosetdata(cch->vars, do_string, "", 0, "/%s/value", variable) ;
+  if (!ccfindvariable(cch->vars, variable)) {
+    dosetdata(cch->vars, do_string, variable, strlen(variable), "/+/variable") ;
+    dosetdata(cch->vars, do_string, path, strlen(path), "/*/path") ;
+    dosetdata(cch->vars, do_string, namespace, strlen(namespace), "/*/namespace") ;
+    dosetdata(cch->vars, do_string, type, strlen(type), "/*/type") ;
+    dosetdata(cch->vars, do_string, "", 0, "/*/value") ;
+    return 1 ;
+  } else {
+    return 0 ;
+  }
+
 }
 
 
@@ -458,8 +464,9 @@ int ccaddwatch(CHROMECAST *cch, char *variable, char *namespace, char *type, cha
 int ccsetwatch(CHROMECAST *cch, char *variable, char *value)
 {
   if (!cch || !variable || !value) return 0 ;
-  if (!dogetdata(cch->vars, do_string, NULL, "/%s/value"), variable) return 0 ;
-  dosetdata(cch->vars, do_string, value, strlen(value), "/%s/value", variable) ;
+  DATAOBJECT *var = ccfindvariable(cch->vars, variable) ;
+  if (!var) return 0 ;
+  dosetdata(var, do_string, value, strlen(value), "/value") ;
   return 1 ;
 }
 
@@ -474,7 +481,7 @@ int ccsetwatch(CHROMECAST *cch, char *variable, char *value)
 
 char *ccgetwatch(CHROMECAST *cch, char *variable)
 {
-  DATAOBJECT *dh = _cc_find_var(cch->vars, variable) ;
+  DATAOBJECT *dh = ccfindvariable(cch->vars, variable) ;
   if (!dh) return "" ;
   else return dogetdata(dh, do_string, NULL, "/value") ;
 }
@@ -601,13 +608,14 @@ int _cc_processinputmessage(CHROMECAST *cch)
   char *msgtype = dogetdata(cch->recvobject, do_string, NULL, "/message/type") ;
 
   if (msgnamespace) {
-    dosetdata(cch->vars, do_string, msgnamespace, strlen(msgnamespace), "/lastMessageNamespace/value") ;
-    dosetdata(cch->vars, do_string, "lastMessageNamespace", 20, "/lastMessageNamespace/variable") ;
+    var = ccfindvariable(cch->vars, "lastMessageNamespace") ;
+    dosetdata(var, do_string, msgnamespace, strlen(msgnamespace), "/value") ;
   }
 
+
   if (msgtype) {
-    dosetdata(cch->vars, do_string, msgtype, strlen(msgtype), "/lastMessageType/value") ;
-    dosetdata(cch->vars, do_string, "lastMessageType", 15, "/lastMessageType/variable") ;
+    var = ccfindvariable(cch->vars, "lastMessageType") ;
+    dosetdata(cch->vars, do_string, msgtype, strlen(msgtype), "/value") ;
   }
 
 
@@ -948,10 +956,14 @@ int ccincrementrequestid(DATAOBJECT *vars)
 
   char newvalues[32] ;
 
-  int value = ccgetrequestid(vars) ;
-  sprintf(newvalues, "%d", value + 1) ;
+  DATAOBJECT *rid = ccfindvariable(vars, "requestId") ;
+  if (!rid) return 0 ;
 
-  dosetdata(vars, do_string, newvalues, strlen(newvalues), "/requestId/value") ;
+  char *value = dogetdata(rid, do_string, NULL, "/value") ;
+  if (!value) value="0" ;
+
+  sprintf(newvalues, "%d", atoi(value) + 1) ;
+  dosetdata(rid, do_string, newvalues, strlen(newvalues), "/value") ;
 
   return 1 ;
 
@@ -965,9 +977,105 @@ int ccincrementrequestid(DATAOBJECT *vars)
 
 int ccgetrequestid(DATAOBJECT *vars)
 {
-  char *values = dogetdata(vars, do_string, NULL, "/requestId/value") ;
-  if (!values) values="0" ;
-  return atoi(values) ;
+  DATAOBJECT *rid = ccfindvariable(vars, "requestId") ;
+  if (!rid) return 0 ;
+  char *value = dogetdata(rid, do_string, NULL, "/value") ;
+  if (!value) return 0 ;
+  else return atoi(value) ;  
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Search the vars list for the specified variable
+// @param(in) vars List of variables
+// @param(in) variable Name of variable to match
+// @return pointer to variable data object or NULL
+//
+
+DATAOBJECT *ccfindvariable(DATAOBJECT *vars, char *variable) 
+{
+
+  int i=0 ;
+  DATAOBJECT *vh ;
+
+  while (vh=dochild(donoden(vars,i)) ) {
+
+    // Get, test and return if match
+
+    char *vhvariable = dogetdata(vh, do_string, NULL, "/variable") ;
+
+    if (vhvariable && strcmp(vhvariable, variable)==0) {
+
+      return vh ;
+
+    }
+
+    i++ ;
+
+  }
+
+  return NULL ;
+
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Sets the value of the given variable
+// @param(in) vars List of variables
+// @param(in) variable Name of variable
+// @param(in) value Value to set
+// @return pointer to variable data object or NULL on error
+//
+
+DATAOBJECT *ccsetvariable(DATAOBJECT *vars, char *variable, char *value)
+{
+  if (!vars || !variable || !value) return NULL ;
+
+  DATAOBJECT *vh = ccfindvariable(vars, variable) ;
+
+  if (!vh) {
+
+    dosetdata(vars, do_string, variable, strlen(variable), "/+/variable") ;
+    dosetdata(vars, do_string, value, strlen(value), "/*/value") ;
+    return ccfindvariable(vars, variable) ;
+
+  } else {
+
+    dosetdata(vh, do_string, variable, strlen(variable), "/variable") ;
+    dosetdata(vh, do_string, value, strlen(value), "/value") ;
+    return vh ;
+
+  }
+
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Gets the value of the given variable
+// @param(in) vars List of variables
+// @param(in) variable Name of variable
+// @return pointer to variable string value or NULL on error
+//
+
+char *ccgetvariable(DATAOBJECT *vars, char *variable)
+{
+  if (!vars || !variable) return NULL ;
+
+  DATAOBJECT *vh = ccfindvariable(vars, variable) ;
+
+  if (!vh) {
+
+    return NULL ;
+
+  } else {
+
+    return dogetdata(vh, do_string, NULL, "/value") ;
+
+  }
+
+}
 

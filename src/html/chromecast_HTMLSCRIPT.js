@@ -546,7 +546,7 @@ function refreshserverinfo(selecttag, mediatag)
 
       } 
 
-      if (json && json.media) {
+      if (json && json.vars) {
     
         // add to media list
 
@@ -556,9 +556,12 @@ function refreshserverinfo(selecttag, mediatag)
 
           var lst = "" ;
 
-          for (var key in json.media) {
-            if (json.media.hasOwnProperty(key)) {
-              lst = lst + "<li>" + json.media[key] + "</li>" ;
+          for (var key in json.vars) {
+            if (json.vars.hasOwnProperty(key)) {
+              var value = new String(json.vars[key]) ;
+              if (value.indexOf("http")==0) {
+                lst = lst + "<li>" + json.vars[key] + "</li>" ;
+              }
             }
           }
 

@@ -367,6 +367,38 @@ int ccsendheartbeatmessage(CHROMECAST *cch, char *type) ;
 int ccsendreceivermessage(CHROMECAST *cch, char *type) ;
 
 
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Search the vars list for the specified variable
+// @param(in) vars List of variables
+// @param(in) variable Name of variable to match
+// @return pointer to variable data object or NULL
+//
+
+DATAOBJECT *ccfindvariable(DATAOBJECT *vars, char *variable) ;
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Sets the value of the given variable
+// @param(in) vars List of variables
+// @param(in) variable Name of variable
+// @param(in) value Value to set
+// @return pointer to variable data object or NULL on error
+//
+
+DATAOBJECT *ccsetvariable(DATAOBJECT *vars, char *variable, char *value) ;
+
+//////////////////////////////////////////////////////////////////////////
+//
+// @brief Gets the value of the given variable
+// @param(in) vars List of variables
+// @param(in) variable Name of variable
+// @return pointer to variable string value or NULL on error
+//
+
+char *ccgetvariable(DATAOBJECT *vars, char *variable) ;
+
 
 #endif
 
