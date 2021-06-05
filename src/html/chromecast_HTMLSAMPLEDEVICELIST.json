@@ -1,82 +1,72 @@
 {
-    "devicelist": [
-        {
-            "id": "64fc9ae45fd9df691cc5f764fa79eff4",
-            "networkName": "64fc9ae4-5fd9-df69-1cc5-f764fa79eff4.local",
-            "friendlyName": "Lounge speaker",
-            "deviceName": "Google-Home-Mini-64fc9ae45fd9df691cc5f764fa79eff4._googlecast._tcp.local",
-            "ipAddress": "192.168.11.102",
-            "port": 8009,
-            "netClass": "_googlecast._tcp.local",
-            "connection": "connected",
-            "idle": 4,
-            "vars": {
-                "appId": "CC1AD845",
-                "playerState": "PLAYING",
-                "displayName": "Default Media Receiver",
-                "statusText": "Casting: BBC Radio 4 Extra",
-                "sessionId": "640c3046-8c4f-4980-90c5-fc6930280e77",
-                "mediaSessionId": 3
-            }
-        },
-        {
-            "id": "33833c016e13f037050a18bbc7ff89ee",
-            "networkName": "33833c01-6e13-f037-050a-18bbc7ff89ee.local",
-            "friendlyName": "Kitchen Speaker",
-            "deviceName": "Google-Home-33833c016e13f037050a18bbc7ff89ee._googlecast._tcp.local",
-            "ipAddress": "192.168.11.103",
-            "port": 8009,
-            "netClass": "_googlecast._tcp.local",
-            "connection": "connected",
-            "idle": 1,
-            "vars": {
-                "appId": "CC1AD845",
-                "playerState": "BUFFERING",
-                "displayName": "Default Media Receiver",
-                "statusText": "Casting: Sports Live",
-                "sessionId": "6d81d8c0-ba16-4a95-95fe-d69b259d7698",
-                "mediaSessionId": 1
-            }
-        },
-        {
-            "id": "2c7bf6c1a0a3288577df7a396b45fb28",
-            "networkName": "2c7bf6c1-a0a3-2885-77df-7a396b45fb28.local",
-            "friendlyName": "Lounge TV",
-            "deviceName": "Chromecast-2c7bf6c1a0a3288577df7a396b45fb28._googlecast._tcp.local",
-            "ipAddress": "192.168.11.104",
-            "port": 8009,
-            "netClass": "_googlecast._tcp.local",
-            "connection": "connected",
-            "idle": 120,
-            "vars": {
-                "appId": "E8C28D3C",
-                "playerState": "",
-                "displayName": "Backdrop",
-                "statusText": "",
-                "sessionId": "c6e51dd9-4fc5-48b7-9fa1-3734ba1378a6",
-                "mediaSessionId": 0
-            }
-        },
-        {
-            "id": "2fa2eb08-0563-4a13-ad79-b38bc40124ef",
-            "networkName": "64fc9ae4-5fd9-df69-1cc5-f764fa79eff4.local",
-            "friendlyName": "All Speakers",
-            "deviceName": "Google-Cast-Group-2fa2eb0805634a13ad79b38bc40124ef._googlecast._tcp.local",
-            "ipAddress": "192.168.11.102",
-            "port": 32108,
-            "netClass": "_googlecast._tcp.local",
-            "connection": "connected",
-            "idle": 4,
-            "vars": {
-                "appId": "",
-                "playerState": "",
-                "displayName": "",
-                "statusText": "",
-                "sessionId": "",
-                "mediaSessionId": 0
-            }
-        }
-    ],
-    "deviceCount": 4,
-    "status": "OK"
+  "devicelist":[
+    {
+      "friendlyName":"Study speaker",
+      "ipAddress":"192.168.1.101",
+      "port":8009,
+      "id":"45fbdff471ea9f054ff6f8f412121212",
+      "networkName":"45fbdff4-71ea-9f05-4ff6-f8f412121212.local",
+      "deviceName":"Google-Home-Mini-45fbdff471ea9f054ff6f8f412121212._googlecast._tcp.local",
+      "netClass":"_googlecast._tcp.local",
+      "connection":"connected",
+      "idle":9,
+      "vars":{
+        "sessionId":"903abab6-8dde-4401-ba9f-586a600f798e",
+        "appId":"CC1AD845",
+        "statusText":"Casting: IP Music Slow",
+        "playerState":"PLAYING",
+        "mediaSessionId":"1",
+        "requestId":"24",
+        "lastMessageType":"MEDIA_STATUS",
+        "lastMessageNamespace":"urn:x-cast:com.google.cast.media",
+        "count":8
+      }
+    },
+    {
+      "friendlyName":"Bedroom speaker",
+      "ipAddress":"192.168.1.106",
+      "port":8009,
+      "id":"cbdd577dd3777095870394e712121212",
+      "networkName":"cbdd577d-d377-7095-8703-94e712121212.local",
+      "deviceName":"Google-Nest-Mini-cbdd577dd3777095870394e712121212._googlecast._tcp.local",
+      "netClass":"_googlecast._tcp.local",
+      "connection":"connected",
+      "idle":187,
+      "vars":{
+        "sessionId": "fadc8c45-71d7-4567-a5eb-d9a621ae2cb4",
+        "appId": "CD7B9F59",
+        "statusText": "Casting: Classic FM",
+        "playerState": "PAUSED",
+        "mediaSessionId": "1",
+        "requestId": "21",
+        "lastMessageType": "PING",
+        "lastMessageNamespace": "urn:x-cast:com.google.cast.tp.heartbeat",
+        "count": 8
+      }
+    },
+    {
+      "friendlyName":"Lounge TV",
+      "ipAddress":"192.168.1.104",
+      "port":8009,
+      "id":"2c7bf6c1a0a3288577df7a3912121212",
+      "networkName":"2c7bf6c1-a0a3-2885-77df-7a3912121212.local",
+      "deviceName":"Chromecast-2c7bf6c1a0a3288577df7a3912121212._googlecast._tcp.local",
+      "netClass":"_googlecast._tcp.local",
+      "connection":"connected",
+      "idle":249,
+      "vars":{
+        "sessionId":"e4212369-c6a4-43eb-9988-5834137800ed",
+        "appId": "E8C28D3C",
+        "statusText": "",
+        "playerState": "",
+        "mediaSessionId": "",
+        "requestId": "7",
+        "lastMessageType": "RECEIVER_STATUS",
+        "lastMessageNamespace": "urn:x-cast:com.google.cast.receiver",
+        "count": 8
+      }
+    }
+ ],
+  "deviceCount":3,
+  "status":"OK"
 }

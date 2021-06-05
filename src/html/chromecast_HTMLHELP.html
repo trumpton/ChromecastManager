@@ -11,7 +11,7 @@
 <div>
   <a href="http://www.vizier.uk/guidedogs" target="sponsor">
     <img class="icon" src="/pp.png" align="right" alt="Paw Print" 
-         title="Say Thankyou by making a donation to Guide Dogs for the Blind" />
+         title="Say Thankyou by making a donation to Guide Dogs for the Blind.  Note that this program has not been produced in conjunction with Guide Dogs - we just want them to receive any of the 'thanks'" />
   </a>
   <img class="icon" src="/favicon.ico" align="left" alt="Chromecast Manager" 
        title="Chromecast Manager, Copyright Steve Clarke (c) 2021" />
@@ -30,7 +30,7 @@ playground where chromecast messages can be verified</p>
 
 <p>If you find this program useful, please consider making a donation to 
 <a href="http://www.vizier.uk/guidedogs" target="sponsor">
-Guide Dogs for the Blind</a> - your support is very much appreciated</p>
+Guide Dogs for the Blind</a> - your support is very much appreciated.</p>
 
 </div>
 
@@ -117,19 +117,15 @@ syslog</p>
 
 <b>Available Variables</b>
 
-<p>Variables are stored in one of four places:</p>
+<p>Variables are stored in one of five places:</p>
 <ul>
 <li>At system level (these can be seen in the /serverinfo report).</li>
 <li>For each device (these can be seen in the /devicelist report).</li>
 <li>In the http session itself - this only exists for the duration of the session.  All variables provided in the 
 request json and the request query parameters are turned into variables.</li>
-<li>In data files - see the @() variable below.</li>
+<li>In data files - see the <b>#(filename)</b> variable below.</li>
+<li>In files from http servers - see the <b>@(url)</b> variable below.</li>
 </ul>
-
-<p>Only the <b>$(requestId)</b>, <b>$(sessionId)</b>, <b>$(lastMessageNamespace)</b> and 
-<b>$(lastMessageType)</b> variables are pre-defined for chromecast devices.  
-All other variables must be added in a macro script if required (see addwatch macro 
-step description below).</p>
 
 <b>Pre-defined / current variables</b>
 
@@ -145,6 +141,9 @@ step description below).</p>
 <li><b>$(sessionId)</b> - The sessionID established through the automatic CONNECT to receiver-0</li>
 <li><b>$(statusText)</b> - The status text of the current session (if loaded)</li>
 </ul>
+
+<p>All other variables must be added in a macro script if required (see addwatch macro 
+step description below).</p>
 
 <b>Variable Updating</b>
 
@@ -162,29 +161,31 @@ any of the macros).</p>
 
 <ul>
 <li><b>$(variable)</b> - Value of variable</li>
-<li><b>@(filename)</b> - Value is taken from the current line in the specified file in the config folder</li>
+<li><b>#(filename)</b> - Value is taken from the current line in the specified file in the config folder</li>
+<li><b>@(url)</b> - Value is taken from the current line at the specified url</li>
 </ul>
 
-<p>Both variables and filenames can take a prefix to force the result to be presented in a specific
+<p>Variables, filenames and urls can take a prefix to force the result to be presented in a specific
 format</p>
 
 <ul>
-<li><b>$(s:variable)</b> / <b>@(s:filename)</b> - Value presented as a string (this is the default)</li>
-<li><b>$(i:variable)</b> / <b>@(i:filename)</b> - Value presented as an integer (a string would be interpreted as 0)</li>
-<li><b>$(f:variable)</b> / <b>@(f:filename)</b> - Value presented as floating point number</li>
-<li><b>$(b:variable)</b> / <b>@(b:filename)</b> - Value presented as a boolean (true/false)</li>
+<li><b>$(s:variable)</b> / <b>#(s:filename)</b> / <b>@(s:url)</b> - Value presented as a string (this is the default)</li>
+<li><b>$(i:variable)</b> / <b>#(i:filename)</b> / <b>@(i:url)</b> - Value presented as an integer (a string would be interpreted as 0)</li>
+<li><b>$(f:variable)</b> / <b>#(f:filename)</b> / <b>@(f:url)</b> - Value presented as floating point number</li>
+<li><b>$(b:variable)</b> / <b>#(b:filename)</b> / / <b>@(b:url)</b>- Value presented as a boolean (true/false)</li>
 </ul>
 
-<p>The filename can also take a suffix to control which part of the file is used.</p>
+<p>The filename or url can also take a suffix to control which part of the file is used.</p>
 
 <ul>
-<li><b>@(filename:n)</b> - The nth line of the file is used (see not on counting line numbers below)</li>
-<li><b>@(filename:+)</b> - The current line of the file is used, however the line number is 
-     incremented afterwards</li>
-<li><b>@(filename:*:c)</b> - The cth column on the current line is used</li>
-<li><b>@(filename:n:c)</b> - The cth column on the nth line is used</li>
-<li><b>@(filename:+:c)</b> - The cth column on the current line is used, and the line is 
-     incremented afterwards</li>
+<li><b>#(filename:n)</b> / <b>@(url:n)</b> - The nth line of the file / url is used (see not on 
+    counting line numbers below)</li>
+<li><b>#(filename:+)</b> / <b>@(url:+)</b> - The current line of the file / url is used, however 
+    the line number is incremented afterwards</li>
+<li><b>#(filename:*:c)</b> / <b>@(url:*:c)</b> - The cth column on the current line is used</li>
+<li><b>#(filename:n:c)</b> / <b>@(url:n:c)</b> - The cth column on the nth line is used</li>
+<li><b>#(filename:+:c)</b> / <b>@(url:+:c)</b> - The cth column on the current line is used, and 
+    the line is incremented afterwards</li>
 </ul>
 
 <p>Files must exist below the config folder - filenames starting with / or containing .. are 
@@ -210,19 +211,19 @@ line4a
 </pre>
 
 <ul>
-<li><b>@(filename)</b> -> Line 1 -> <i>line1a,line1b,line1c</i></li>
-<li><b>@(filename:1)</b> -> Line 1 -> <i>line1a,line1b,line1c</i></li>
-<li><b>@(filename:+)</b> -> Line 1 (then increment) -> <i>line1a,line1b,line1c</i></li>
-<li><b>@(filename:*)</b> -> Line 2 -> <i>line2a,,line2c</i></li>
-<li><b>@(filename:*:1)</b> -> Line 2 First Column -> <i>line2a</i></li>
-<li><b>@(filename:*:2)</b> -> Line 2, Empty Column -> <i>""</i></li>
-<li><b>@(filename:*:4)</b> -> Line 2, Invalid Column -> <i>""</i></li>
-<li><b>@(filename:6)</b> -> Invalid Line -> <i>""</i></li>
+<li><b>#(filename)</b> -> Line 1 -> <i>line1a,line1b,line1c</i></li>
+<li><b>#(filename:1)</b> -> Line 1 -> <i>line1a,line1b,line1c</i></li>
+<li><b>#(filename:+)</b> -> Line 1 (then increment) -> <i>line1a,line1b,line1c</i></li>
+<li><b>#(filename:*)</b> -> Line 2 -> <i>line2a,,line2c</i></li>
+<li><b>#(filename:*:1)</b> -> Line 2 First Column -> <i>line2a</i></li>
+<li><b>#(filename:*:2)</b> -> Line 2, Empty Column -> <i>""</i></li>
+<li><b>#(filename:*:4)</b> -> Line 2, Invalid Column -> <i>""</i></li>
+<li><b>#(filename:6)</b> -> Invalid Line -> <i>""</i></li>
 </ul>
 
 <b>Nesting of Variables</b>
 
-<p>One level of variable nesting is supported, so <b>@(f:scripts/file$(i:index).lst:+:1)</b> will get data
+<p><u>One level</u> of variable nesting is supported, so <b>#(f:scripts/file$(i:index).lst:+:1)</b> will get data
 from the first column on the current line in file0.lst, file1.lst etc, where the number is stored
 in the <b>$(i:index)</b> variable and return as a floating point number.</p>
 
@@ -285,6 +286,8 @@ These are extendible, and may be used when submitting requests</p>
       "connection":"connected",
       "idle":31,
       "vars":{
+      "vars":{
+        "requestId":"3",
         "lastMessageNamespace":"urn:x-cast:com.google.cast.receiver",
         "lastMessageType":"RECEIVER_STATUS",
         "sessionId":"160378b4-b164-4306-ac76-05412a37ecf6",
@@ -292,7 +295,7 @@ These are extendible, and may be used when submitting requests</p>
         "statusText":"Default Media Receiver",
         "playerState":"IDLE",
         "mediaSessionId":"1",
-        "count":7
+        "count":8
       }
     }
   ],
@@ -330,9 +333,7 @@ with these devices.</p>
 {
     "vars": {
         "serverIpAddress": "192.168.1.204",
-        "serverPort": 9000
-    },
-    "media": {
+        "serverPort": 9000,
         "logo": "http://192.168.1.204:9000/logo.png",
         "pp": "http://192.168.1.204:9000/pp.png",
         "img": "http://192.168.1.204:9000/testimg1.jpg",

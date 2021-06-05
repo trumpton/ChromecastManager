@@ -20,9 +20,9 @@
 char *getscriptfolder() ;
 
 // Functions to extract data from a file
-int _ccexpandvars_updatecache(DATAOBJECT *var, int suffixline, int suffixcolumn) ;
+int _ccexpandvars_updatecache(DATAOBJECT *var, int isfile, int suffixline, int suffixcolumn) ;
 
-int _ccexpandvars_loaddata(DATAOBJECT *root) ;
+int _ccexpandvars_loaddata(DATAOBJECT *root, int isfile) ;
 int _ccexpandvars_readfromfile(char *filename, char **buf, int *buflen) ;
 int _ccexpandvars_readfromhttp(char *filename, char **buf, int *buflen) ;
 
@@ -30,7 +30,7 @@ int _ccexpandvars_readfromhttp(char *filename, char **buf, int *buflen) ;
 
 //////////////////////////////////////////////////////////////////////////
 //
-// @brief Expand variables in format @(file) @(file:n) @(file:+) $(var) $(s:var) $(i:var) $(f:var) $(b:var)
+// @brief Expand variables in format #(t:file:l:c) @(t:http:l:c) $(t:var)
 // @param(in) dh Pointer to data object which contains variables to expand
 // @param(in) vars Pointer to a variables structure
 // @param(in) leaveifempty If true, empty / invalid variables are not expanded
@@ -105,7 +105,7 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
   int inquote=0 ;
 
   // quick check / return
-  if (!strstr(buf, "$(") && !strstr(buf, "@(")) return 0 ;
+  if (!strstr(buf, "$(") && !strstr(buf, "#(") && !strstr(buf, "@(")) return 0 ;
 
   //////////////////////////////
   // Replace IP Address and Port
@@ -131,6 +131,7 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
     int CURRENT = 0 ;    // suffixline constant
     int suffixcolumn = 0 ;
     int isfile = 0 ;
+    int ishttp = 0 ;
 
     if (buf[p]=='\\') {
       p++ ;
@@ -138,13 +139,14 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
       inquote = !inquote ;
     }
 
-    if ( (buf[p]=='$' || buf[p]=='@') && ( buf[p+1]=='(' ) ) {
+    if ( (buf[p]=='$' || buf[p]=='@' || buf[p]=='#') && ( buf[p+1]=='(' ) ) {
 
       char *tstvariable = &buf[p] ;
 
       // Capture type
 
-      isfile = (buf[p]=='@') ;
+      isfile = (buf[p]=='#') ;
+      ishttp = (buf[p]=='@') ;
 
       type = 's' ;
       if (buf[p+2]!='\0' && buf[p+3]==':') {
@@ -163,9 +165,9 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
       // http / https contain colons which must be copied
       // as part of the variable, and not used as terminators
 
-      if (isfile && strncmp(&buf[p+varlen],"http://",7)==0) {
+      if (ishttp && strncmp(&buf[p+varlen],"http://",7)==0) {
         freecopy=7 ;
-      } else if (isfile && strncmp(&buf[p+varlen],"https://",8)==0) {
+      } else if (ishttp && strncmp(&buf[p+varlen],"https://",8)==0) {
         freecopy=8 ;
       }
 
@@ -265,11 +267,11 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
       //////////////////////////////
       // Get variable value
 
-      if (isfile) {
+      if (isfile || ishttp) {
 
-        // Create / find @variable
+        // Create / find @variable or #variable
         vh = ccsetvariable(vars, variable, "") ;
-        _ccexpandvars_updatecache(vh, suffixline, suffixcolumn) ;
+        _ccexpandvars_updatecache(vh, isfile, suffixline, suffixcolumn) ;
 
       } else {
 
@@ -349,7 +351,7 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
 // @brief Load value from a file and store in var
 //
 
-int _ccexpandvars_updatecache(DATAOBJECT *var, int suffixline, int suffixcolumn)
+int _ccexpandvars_updatecache(DATAOBJECT *var, int isfile, int suffixline, int suffixcolumn)
 {
   long int line = 1 ;
 
@@ -376,7 +378,7 @@ int _ccexpandvars_updatecache(DATAOBJECT *var, int suffixline, int suffixcolumn)
   ////////////////////////////////////////////
   // Get cached value and update as needed
 
-  if (_ccexpandvars_loaddata(var)) {
+  if (_ccexpandvars_loaddata(var, isfile)) {
 
     char *value = dogetdata(var, do_string, NULL, "/filesource/%d/%d", line, suffixcolumn) ;
     if (!value) { value="" ; }
@@ -419,7 +421,7 @@ int _ccexpandvars_updatecache(DATAOBJECT *var, int suffixline, int suffixcolumn)
 // @return true on success
 //
 
-int _ccexpandvars_loaddata(DATAOBJECT *root)
+int _ccexpandvars_loaddata(DATAOBJECT *root, int isfile)
 {
   FILE *fp ;
   int linenum=1 ;
@@ -444,13 +446,13 @@ int _ccexpandvars_loaddata(DATAOBJECT *root)
   buf=NULL ;
   buflen=0 ;
 
-  if (strstr(filename, "http://") || strstr(filename, "https://")) {
+  if (isfile) {
 
-    _ccexpandvars_readfromhttp(filename, &buf, &buflen) ;
+    _ccexpandvars_readfromfile(filename, &buf, &buflen) ;
 
   } else {
 
-    _ccexpandvars_readfromfile(filename, &buf, &buflen) ;
+    _ccexpandvars_readfromhttp(filename, &buf, &buflen) ;
 
   }
 
