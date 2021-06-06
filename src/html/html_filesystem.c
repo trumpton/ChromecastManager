@@ -17,6 +17,12 @@
 #include "chromecast_BINICON.pngh"
 #include "chromecast_BINALERT1.oggh"
 #include "chromecast_BINALERT2.oggh"
+#include "chromecast_BININFOC.oggh"
+#include "chromecast_BININFOCC.oggh"
+#include "chromecast_BININFOCCC.oggh"
+#include "chromecast_BININFOCE.oggh"
+#include "chromecast_BININFOE.oggh"
+#include "chromecast_BININFOEC.oggh"
 #include "mixkit_TEST1.oggh"
 #include "mixkit_TEST2.oggh"
 #include "chromecast_BINPP.pngh"
@@ -88,6 +94,48 @@ int html_filesystem(char *path, char **data, char **mediatype, int *len)
     *data = BINALERT2_DATA ;
     *mediatype = BINALERT2_MEDIATYPE ;
     *len = BINALERT2_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/infoc.ogg")==0) {
+
+    *data = BININFOC_DATA ;
+    *mediatype = BININFOC_MEDIATYPE ;
+    *len = BININFOC_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/infocc.ogg")==0) {
+
+    *data = BININFOCC_DATA ;
+    *mediatype = BININFOCC_MEDIATYPE ;
+    *len = BININFOCC_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/infoccc.ogg")==0) {
+
+    *data = BININFOCCC_DATA ;
+    *mediatype = BININFOCCC_MEDIATYPE ;
+    *len = BININFOCCC_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/infoce.ogg")==0) {
+
+    *data = BININFOCE_DATA ;
+    *mediatype = BININFOCE_MEDIATYPE ;
+    *len = BININFOCE_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/infoe.ogg")==0) {
+
+    *data = BININFOE_DATA ;
+    *mediatype = BININFOE_MEDIATYPE ;
+    *len = BININFOE_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/infoec.ogg")==0) {
+
+    *data = BININFOEC_DATA ;
+    *mediatype = BININFOEC_MEDIATYPE ;
+    *len = BININFOEC_LEN ;
     return 1 ;
 
   } else if (strcasecmp(path, "/test1.ogg")==0) {

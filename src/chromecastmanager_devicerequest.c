@@ -597,8 +597,20 @@ int chromecast_device_request_process_serverinfo(HTTPD *httpsh)
                "    \"test2\": \"http://%s:%d/test2.ogg\",\n"
                "    \"alert1\": \"http://%s:%d/alert1.ogg\",\n" 
                "    \"alert2\": \"http://%s:%d/alert2.ogg\"\n"
+               "    \"infoc\": \"http://%s:%d/infoc.ogg\"\n"
+               "    \"infocc\": \"http://%s:%d/infocc.ogg\"\n"
+               "    \"infoccc\": \"http://%s:%d/infoccc.ogg\"\n"
+               "    \"infoce\": \"http://%s:%d/infoce.ogg\"\n"
+               "    \"infoe\": \"http://%s:%d/infoe.ogg\"\n"
+               "    \"infoec\": \"http://%s:%d/infoec.ogg\"\n"
                "  },\n"
                "  \"scripts\": [\n",
+               ip, port,
+               ip, port,
+               ip, port,
+               ip, port,
+               ip, port,
+               ip, port,
                ip, port,
                ip, port,
                ip, port,
