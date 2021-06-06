@@ -456,6 +456,8 @@ int _ccexpandvars_loaddata(DATAOBJECT *root, int isfile)
 
   }
 
+  if (!buf) goto loadfail ;
+
   int s=0, e, nexts ;
 
   while (buf[s]!='\0') {

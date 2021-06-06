@@ -596,15 +596,19 @@ int chromecast_device_request_process_serverinfo(HTTPD *httpsh)
                "    \"test1\": \"http://%s:%d/test1.ogg\",\n"
                "    \"test2\": \"http://%s:%d/test2.ogg\",\n"
                "    \"alert1\": \"http://%s:%d/alert1.ogg\",\n" 
-               "    \"alert2\": \"http://%s:%d/alert2.ogg\"\n"
-               "    \"infoc\": \"http://%s:%d/infoc.ogg\"\n"
-               "    \"infocc\": \"http://%s:%d/infocc.ogg\"\n"
-               "    \"infoccc\": \"http://%s:%d/infoccc.ogg\"\n"
-               "    \"infoce\": \"http://%s:%d/infoce.ogg\"\n"
-               "    \"infoe\": \"http://%s:%d/infoe.ogg\"\n"
-               "    \"infoec\": \"http://%s:%d/infoec.ogg\"\n"
+               "    \"alert2\": \"http://%s:%d/alert2.ogg\",\n"
+               "    \"ok1\": \"http://%s:%d/ok1.ogg\",\n"
+               "    \"ok2\": \"http://%s:%d/ok2.ogg\",\n"
+               "    \"no1\": \"http://%s:%d/no1.ogg\",\n"
+               "    \"no2\": \"http://%s:%d/no2.ogg\",\n"
+               "    \"start1\": \"http://%s:%d/start1.ogg\",\n"
+               "    \"start2\": \"http://%s:%d/start2.ogg\",\n"
+               "    \"end1\": \"http://%s:%d/end1.ogg\",\n"
+               "    \"end2\": \"http://%s:%d/end2.ogg\"\n"
                "  },\n"
                "  \"scripts\": [\n",
+               ip, port,
+               ip, port,
                ip, port,
                ip, port,
                ip, port,

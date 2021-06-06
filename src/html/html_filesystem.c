@@ -17,12 +17,14 @@
 #include "chromecast_BINICON.pngh"
 #include "chromecast_BINALERT1.oggh"
 #include "chromecast_BINALERT2.oggh"
-#include "chromecast_BININFOC.oggh"
-#include "chromecast_BININFOCC.oggh"
-#include "chromecast_BININFOCCC.oggh"
-#include "chromecast_BININFOCE.oggh"
-#include "chromecast_BININFOE.oggh"
-#include "chromecast_BININFOEC.oggh"
+#include "chromecast_BINOK1.oggh"
+#include "chromecast_BINOK2.oggh"
+#include "chromecast_BINNO1.oggh"
+#include "chromecast_BINNO2.oggh"
+#include "chromecast_BINSTART1.oggh"
+#include "chromecast_BINSTART2.oggh"
+#include "chromecast_BINEND1.oggh"
+#include "chromecast_BINEND2.oggh"
 #include "mixkit_TEST1.oggh"
 #include "mixkit_TEST2.oggh"
 #include "chromecast_BINPP.pngh"
@@ -96,46 +98,60 @@ int html_filesystem(char *path, char **data, char **mediatype, int *len)
     *len = BINALERT2_LEN ;
     return 1 ;
 
-  } else if (strcasecmp(path, "/infoc.ogg")==0) {
+  } else if (strcasecmp(path, "/ok1.ogg")==0) {
 
-    *data = BININFOC_DATA ;
-    *mediatype = BININFOC_MEDIATYPE ;
-    *len = BININFOC_LEN ;
+    *data = BINOK1_DATA ;
+    *mediatype = BINOK1_MEDIATYPE ;
+    *len = BINOK1_LEN ;
     return 1 ;
 
-  } else if (strcasecmp(path, "/infocc.ogg")==0) {
+  } else if (strcasecmp(path, "/ok2.ogg")==0) {
 
-    *data = BININFOCC_DATA ;
-    *mediatype = BININFOCC_MEDIATYPE ;
-    *len = BININFOCC_LEN ;
+    *data = BINOK2_DATA ;
+    *mediatype = BINOK2_MEDIATYPE ;
+    *len = BINOK2_LEN ;
     return 1 ;
 
-  } else if (strcasecmp(path, "/infoccc.ogg")==0) {
+  } else if (strcasecmp(path, "/no1.ogg")==0) {
 
-    *data = BININFOCCC_DATA ;
-    *mediatype = BININFOCCC_MEDIATYPE ;
-    *len = BININFOCCC_LEN ;
+    *data = BINNO1_DATA ;
+    *mediatype = BINNO1_MEDIATYPE ;
+    *len = BINNO1_LEN ;
     return 1 ;
 
-  } else if (strcasecmp(path, "/infoce.ogg")==0) {
+  } else if (strcasecmp(path, "/no2.ogg")==0) {
 
-    *data = BININFOCE_DATA ;
-    *mediatype = BININFOCE_MEDIATYPE ;
-    *len = BININFOCE_LEN ;
+    *data = BINNO2_DATA ;
+    *mediatype = BINNO2_MEDIATYPE ;
+    *len = BINNO2_LEN ;
     return 1 ;
 
-  } else if (strcasecmp(path, "/infoe.ogg")==0) {
+  } else if (strcasecmp(path, "/start1.ogg")==0) {
 
-    *data = BININFOE_DATA ;
-    *mediatype = BININFOE_MEDIATYPE ;
-    *len = BININFOE_LEN ;
+    *data = BINSTART1_DATA ;
+    *mediatype = BINSTART1_MEDIATYPE ;
+    *len = BINSTART1_LEN ;
     return 1 ;
 
-  } else if (strcasecmp(path, "/infoec.ogg")==0) {
+  } else if (strcasecmp(path, "/start2.ogg")==0) {
 
-    *data = BININFOEC_DATA ;
-    *mediatype = BININFOEC_MEDIATYPE ;
-    *len = BININFOEC_LEN ;
+    *data = BINSTART2_DATA ;
+    *mediatype = BINSTART2_MEDIATYPE ;
+    *len = BINSTART2_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/end1.ogg")==0) {
+
+    *data = BINEND1_DATA ;
+    *mediatype = BINEND1_MEDIATYPE ;
+    *len = BINEND1_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/end2.ogg")==0) {
+
+    *data = BINEND2_DATA ;
+    *mediatype = BINEND2_MEDIATYPE ;
+    *len = BINEND2_LEN ;
     return 1 ;
 
   } else if (strcasecmp(path, "/test1.ogg")==0) {

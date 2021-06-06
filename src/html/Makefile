@@ -3,9 +3,10 @@
 #
 
 SOURCES := chromecast_BINALERT1.ogg chromecast_BINALERT2.ogg \
-		chromecast_BININFOC.ogg chromecast_BININFOE.ogg \
-		chromecast_BININFOCE.ogg chromecast_BININFOEC.ogg \
-		chromecast_BININFOCC.ogg chromecast_BININFOCCC.ogg \
+		chromecast_BINOK1.ogg chromecast_BINOK2.ogg \
+		chromecast_BINNO1.ogg chromecast_BINNO2.ogg \
+		chromecast_BINSTART1.ogg chromecast_BINSTART2.ogg \
+		chromecast_BINEND1.ogg chromecast_BINEND2.ogg \
 		chromecast_BINICON.png chromecast_BINPP.png \
 		chromecast_BINIMG1.jpg chromecast_BINIMG2.jpg \
 		chromecast_HTMLHELP.html chromecast_HTMLTEST.html chromecast_HTMLSCRIPT.js \
@@ -16,9 +17,10 @@ TXT2H := txt2h
 BIN2H := bin2h
 
 all: ${BIN2H} chromecast_BINALERT1.oggh chromecast_BINALERT2.oggh \
-		chromecast_BININFOC.oggh chromecast_BININFOE.oggh \
-		chromecast_BININFOCE.oggh chromecast_BININFOEC.oggh \
-		chromecast_BININFOCC.oggh chromecast_BININFOCCC.oggh \
+		chromecast_BINOK1.oggh chromecast_BINOK2.oggh \
+		chromecast_BINNO1.oggh chromecast_BINNO2.oggh \
+		chromecast_BINSTART1.oggh chromecast_BINSTART2.oggh \
+		chromecast_BINEND1.oggh chromecast_BINEND2.oggh \
 		mixkit_TEST1.oggh mixkit_TEST2.oggh \
 		chromecast_BINICON.pngh \
 		chromecast_BINIMG1.jpgh chromecast_BINIMG2.jpgh \
