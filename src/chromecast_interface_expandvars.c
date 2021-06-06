@@ -34,10 +34,11 @@ int _ccexpandvars_readfromhttp(char *filename, char **buf, int *buflen) ;
 // @param(in) dh Pointer to data object which contains variables to expand
 // @param(in) vars Pointer to a variables structure
 // @param(in) leaveifempty If true, empty / invalid variables are not expanded
+// @param(in) loadfilehttp If true, @() and #() will be expanded
 // @return True on success
 //
 
-int ccexpandvariables(DATAOBJECT *dh, DATAOBJECT *vars, int leaveifempty)
+int ccexpandvariables(DATAOBJECT *dh, DATAOBJECT *vars, int leaveifempty, int loadfilehttp)
 {
   if (!dh || !vars) return 0 ;
 
@@ -59,7 +60,7 @@ int ccexpandvariables(DATAOBJECT *dh, DATAOBJECT *vars, int leaveifempty)
 
       strcpy(buf, dat) ;
 
-      if (ccexpandstrvariables(buf, vars, leaveifempty)) {
+      if (ccexpandstrvariables(buf, vars, leaveifempty, loadfilehttp)) {
         dosetdata(thisdh, type, buf, strlen(buf), "/") ;
       }
       mem_free(buf) ;
@@ -71,7 +72,7 @@ int ccexpandvariables(DATAOBJECT *dh, DATAOBJECT *vars, int leaveifempty)
     char *label = donodelabel(thisdh) ;
     if (strstr(label,"(")) {
       mem *buf = mem_malloc(strlen(label) + 1024) ;
-      if (ccexpandstrvariables(buf, vars, leaveifempty)) {
+      if (ccexpandstrvariables(buf, vars, leaveifempty, loadfilehttp)) {
         dorenamenode(thisdh, "/", buf) ;
       }
       mem_free(buf) ;
@@ -79,7 +80,7 @@ int ccexpandvariables(DATAOBJECT *dh, DATAOBJECT *vars, int leaveifempty)
 
     // Recurse if possible
 
-    if (dochild(thisdh)) ccexpandvariables(dochild(thisdh), vars, leaveifempty) ;
+    if (dochild(thisdh)) ccexpandvariables(dochild(thisdh), vars, leaveifempty, loadfilehttp) ;
 
     // Move to the next object
 
@@ -94,7 +95,7 @@ fail:
 }
 
 
-int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty) 
+int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty, int loadfilehttp) 
 {
 
   if (!vars || !buf) return 0 ;
@@ -139,7 +140,8 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty)
       inquote = !inquote ;
     }
 
-    if ( (buf[p]=='$' || buf[p]=='@' || buf[p]=='#') && ( buf[p+1]=='(' ) ) {
+    if ( ( (buf[p]=='$') && buf[p+1]=='(' )  ||
+         ( (buf[p]=='@' || buf[p]=='#') && buf[p+1]=='(' && loadfilehttp ) ) {
 
       char *tstvariable = &buf[p] ;
 

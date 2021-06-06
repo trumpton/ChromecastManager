@@ -142,10 +142,10 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
     // Expand entry variables (2 passes to allow for nested variables)
 
-    ccexpandvariables(step, cch->vars, 1) ;
-    ccexpandvariables(step, cch->httpsessionvars, 1) ;
-    ccexpandvariables(step, cch->vars, 1) ;
-    ccexpandvariables(step, cch->httpsessionvars, 0) ;
+    ccexpandvariables(step, cch->vars, 1, 0) ;
+    ccexpandvariables(step, cch->httpsessionvars, 1, 1) ;
+    ccexpandvariables(step, cch->vars, 1, 0) ;
+    ccexpandvariables(step, cch->httpsessionvars, 0, 1) ;
 
     // Process Entry
 

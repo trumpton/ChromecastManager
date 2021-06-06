@@ -303,15 +303,16 @@ int ccgetrequestid(DATAOBJECT *vars) ;
 
 //////////////////////////////////////////////////////////////////////////
 //
-// @brief Expand variables in format @(file) @(file:n) @(file:+) $(var) $(s:var) $(i:var) $(f:var) $(b:var)
+// @brief Expand variables in format #(t:file:l:c) @(t:http:l:c) $(t:var)
 // @param(in) dh Pointer to data object which contains variables to expand
 // @param(in) vars Pointer to a variables structure
 // @param(in) leaveifempty If true, empty / invalid variables are not expanded
+// @param(in) loadfilehttp If true, @() and #() will be expanded
 // @return True on success
 //
 
-int ccexpandvariables(DATAOBJECT *dh, DATAOBJECT *vars, int leaveifempty) ;
-int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty) ;
+int ccexpandvariables(DATAOBJECT *dh, DATAOBJECT *vars, int leaveifempty, int loadfilehttp) ;
+int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty, int loadfilehttp) ;
 
 
 
