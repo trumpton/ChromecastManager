@@ -169,8 +169,8 @@ int ccdisconnect(CHROMECAST *cch)
   if (cch->recvobject) dodelete(cch->recvobject) ;
   if (cch->sendobject) dodelete(cch->sendobject) ;
   if (cch->recvbuf) free(cch->recvbuf) ;
-  if (cch->macro) free(cch->macro) ;
-  if (cch->httpsessionvars) free(cch->httpsessionvars) ;
+  if (cch->macro) dodelete(cch->macro) ;
+  if (cch->httpsessionvars) dodelete(cch->httpsessionvars) ;
 
   cch->ssl=NULL ;
   cch->vars=NULL ;
