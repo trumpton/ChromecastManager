@@ -615,7 +615,7 @@ int _cc_processinputmessage(CHROMECAST *cch)
 
   if (msgtype) {
     var = ccfindvariable(cch->vars, "lastMessageType") ;
-    dosetdata(cch->vars, do_string, msgtype, strlen(msgtype), "/value") ;
+    dosetdata(var, do_string, msgtype, strlen(msgtype), "/value") ;
   }
 
 

@@ -190,17 +190,16 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
       char *variable = dogetdata(step, do_string, NULL, "/variable") ;
       char *value = dogetdata(step, do_string, NULL, "/value") ;
- 
-      if (variable) {
+      DATAOBJECT *vh = ccfindvariable(cch->vars, variable) ;
 
+      if (variable && vh) {
         int len = value?strlen(value):0 ;
-        dosetdata(cch->vars, do_string, value?value:"", len, "/%s/value", variable) ;
+        dosetdata(vh, do_string, value?value:"", len, "/value") ;
 
         char *comment=dogetdata(step, do_string, NULL, "/comment") ;
         logmsg( LOG_INFO, "Macro @%d%s%s%s set '%s' to '%s'", 
                 num+1, comment?" (":"", comment?comment:"", comment?")":"",
                 variable, value?value:"") ;
-
       } else {
 
 
