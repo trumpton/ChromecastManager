@@ -459,6 +459,8 @@ int _ccexpandvars_loaddata(DATAOBJECT *root, int isfile)
 
   }
 
+  if (!buf) goto loadfail ;
+
   // Try to detect separator (non-space/newline character < ch32)
 
   for (int x=0; buf[x]!='\0' && separator==','; x++) {
@@ -466,8 +468,6 @@ int _ccexpandvars_loaddata(DATAOBJECT *root, int isfile)
       separator = buf[x] ;
     }
   }
-
-  if (!buf) goto loadfail ;
 
   int s=0, e, nexts ;
 
