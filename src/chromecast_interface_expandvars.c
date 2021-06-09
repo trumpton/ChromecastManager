@@ -430,6 +430,7 @@ int _ccexpandvars_loaddata(DATAOBJECT *root, int isfile)
   char *filename=NULL ;
   char *buf ;
   int buflen ;
+  char separator=',' ;
 
   if (!root) return 0 ;
 
@@ -456,6 +457,14 @@ int _ccexpandvars_loaddata(DATAOBJECT *root, int isfile)
 
     _ccexpandvars_readfromhttp(filename, &buf, &buflen) ;
 
+  }
+
+  // Try to detect separator (non-space/newline character < ch32)
+
+  for (int x=0; buf[x]!='\0' && separator==','; x++) {
+    if (buf[x]!='\n' && buf[x]!='\r' && buf[x]!='\t' && buf[x]<32) {
+      separator = buf[x] ;
+    }
   }
 
   if (!buf) goto loadfail ;
@@ -493,7 +502,7 @@ int _ccexpandvars_loaddata(DATAOBJECT *root, int isfile)
 
       do {
 
-        for (e=s; buf[e]!=',' && buf[e]!='\0'; e++) ;
+        for (e=s; buf[e]!=separator && buf[e]!='\0'; e++) ;
         if (buf[e]=='\0') isend=1 ;
 
         buf[e]='\0' ;

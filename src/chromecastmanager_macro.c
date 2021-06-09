@@ -120,7 +120,7 @@ fail:
 int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 {
  
-  int loopcount=20 ; // Detection of infinate loops
+  int loopcount=512 ; // Detection of infinate loops
 
   if (!cch) return 0 ;
   if (!cch->macro) return 1 ;
