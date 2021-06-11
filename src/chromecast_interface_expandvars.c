@@ -109,15 +109,6 @@ int ccexpandstrvariables(mem *buf, DATAOBJECT *vars, int leaveifempty, int loadf
   if (!strstr(buf, "$(") && !strstr(buf, "#(") && !strstr(buf, "@(")) return 0 ;
 
   //////////////////////////////
-  // Replace IP Address and Port
-
-  char intbuf[64] ;
-  snprintf(intbuf, sizeof(intbuf)-1, "%d", httpd_port()) ;
-
-  str_replaceall(buf, "$(serverIpAddress)", httpd_ipaddress()) ;
-  str_replaceall(buf, "$(serverPort)", intbuf) ;
-
-  //////////////////////////////
   // Work through the string
 
   while (buf[p]!='\0') {

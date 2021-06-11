@@ -198,6 +198,51 @@ int main(int argc, char *argv[])
 
   /////////////////////////////////////////////////////
   /////////////////////////////////////////////////////
+  // Set system variables
+
+  DATAOBJECT *sysvars = donew() ;
+
+  {
+    char vbuf[512] ;
+    ccsetvariable(sysvars, "serverIpAddress", httpd_ipaddress()) ;
+    sprintf(vbuf, "%d", httpd_port()) ; 
+    ccsetvariable(sysvars, "serverPort", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/logo.png", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "logo", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/pp.png", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "pp", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/img1.jpg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "img1", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/img2.jpg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "img2", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/test1.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "test1", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/test2.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "test2", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/alert1.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "alert1", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/alert2.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "alert2", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/ok1.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "ok1", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/ok2.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "ok2", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/no1.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "no1", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/no2.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "no2", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/start1.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "start1", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/start2.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "start2", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/end1.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "end1", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/end2.ogg", httpd_ipaddress(),httpd_port()) ; 
+    ccsetvariable(sysvars, "end2", vbuf) ;
+  }
+
+  /////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////
   // Set up chromecast device structure
 
   cch = malloc(maxcc * sizeof(CHROMECAST *)) ;
@@ -396,7 +441,7 @@ int main(int argc, char *argv[])
 
               // Dispatch completed request
 
-              hqi[hc] = chromecast_device_request_process(httpsh[hc], cch, maxcc) ;
+              hqi[hc] = chromecast_device_request_process(httpsh[hc], cch, maxcc, sysvars) ;
               break ;
 
             default:
@@ -460,7 +505,7 @@ int main(int argc, char *argv[])
             if (hqi[hc] == i) queriedindex=hc ;
           }
 
-          chromecast_device_response_process(cch[i], queriedindex>=0 ? httpsh[queriedindex] : NULL) ;
+          chromecast_device_response_process(cch[i], queriedindex>=0 ? httpsh[queriedindex] : NULL, sysvars) ;
 
           break ;
 
@@ -475,7 +520,7 @@ int main(int argc, char *argv[])
            if (hqi[hc] == i) queriedindex=hc ;
          }
 
-         chromecast_macro_process(queriedindex>=0 ? httpsh[queriedindex] : NULL, cch[i]) ;
+         chromecast_macro_process(queriedindex>=0 ? httpsh[queriedindex] : NULL, cch[i], sysvars) ;
 
       }
 
@@ -591,6 +636,8 @@ fail:
   }
 
   chromecast_mdns_close() ;
+
+  if (sysvars) dodelete(sysvars) ;
 
   logmsg(LOG_NOTICE, "shutdown complete") ;
   logclose() ;

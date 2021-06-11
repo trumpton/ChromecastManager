@@ -38,7 +38,7 @@ int chromecast_device_update_sessionvars(DATAOBJECT *sessionvars, char *json) ;
 // Returns index of device processed or -1
 //
 
-int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int maxcc) 
+int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int maxcc, DATAOBJECT *sysvars) 
 {
   int index = -1 ;
 
@@ -75,7 +75,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
     /////////////////////////////////////
     // URI: /serverinfo
 
-    chromecast_device_request_process_serverinfo(httpsh) ;
+    chromecast_device_request_process_serverinfo(httpsh, sysvars) ;
 
     logmsg(LOG_INFO, "Received request: %s from %s:%d - returning media list", 
                      uri, 
@@ -299,7 +299,7 @@ jsonqueryfail:
 
       // Load the macro
 
-      if (chromecast_macro_load(httpsh, cclist[index], jsonscript)) {
+      if (chromecast_macro_load(httpsh, cclist[index], jsonscript, sysvars)) {
 
         logmsg(LOG_INFO, "Received request: %s for %s from %s:%d - json script", 
                          uri, friendlyname, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
@@ -574,7 +574,7 @@ int chromecast_device_request_process_devicelist(HTTPD *httpsh, CHROMECAST **ccl
 
 
 
-int chromecast_device_request_process_serverinfo(HTTPD *httpsh) 
+int chromecast_device_request_process_serverinfo(HTTPD *httpsh, DATAOBJECT *sysvars) 
 {
   if (!httpsh) return 0 ;
 
@@ -584,46 +584,31 @@ int chromecast_device_request_process_serverinfo(HTTPD *httpsh)
   char *ip = httpd_ipaddress() ;
   int port = httpd_port() ;
 
-  snprintf(buf, sizeof(buf)-1,
-               "{\n"
-               "  \"vars\": {\n"
-               "    \"serverIpAddress\": \"%s\",\n"
-               "    \"serverPort\": %d,\n"
-               "    \"logo\": \"http://%s:%d/logo.png\",\n" 
-               "    \"pp\": \"http://%s:%d/pp.png\",\n"
-               "    \"img1\": \"http://%s:%d/test1.jpg\",\n"
-               "    \"img2\": \"http://%s:%d/test2.jpg\",\n"
-               "    \"test1\": \"http://%s:%d/test1.ogg\",\n"
-               "    \"test2\": \"http://%s:%d/test2.ogg\",\n"
-               "    \"alert1\": \"http://%s:%d/alert1.ogg\",\n" 
-               "    \"alert2\": \"http://%s:%d/alert2.ogg\",\n"
-               "    \"ok1\": \"http://%s:%d/ok1.ogg\",\n"
-               "    \"ok2\": \"http://%s:%d/ok2.ogg\",\n"
-               "    \"no1\": \"http://%s:%d/no1.ogg\",\n"
-               "    \"no2\": \"http://%s:%d/no2.ogg\",\n"
-               "    \"start1\": \"http://%s:%d/start1.ogg\",\n"
-               "    \"start2\": \"http://%s:%d/start2.ogg\",\n"
-               "    \"end1\": \"http://%s:%d/end1.ogg\",\n"
-               "    \"end2\": \"http://%s:%d/end2.ogg\"\n"
-               "  },\n"
-               "  \"scripts\": [\n",
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port,
-               ip, port) ;
+  //
+  // Add variables to output
+  //
+
+  DATAOBJECT *p = sysvars ;
+
+  strcpy(buf, "{\n  \"vars\": \{\n") ;
+  int varcount=0 ;
+
+  while (p) {
+    char *v = dogetdata(dochild(p), do_string, NULL, "/variable") ;
+    char *d = dogetdata(dochild(p), do_string, NULL, "/value") ;
+    if (v && d) {
+      snprintf(line, sizeof(line)-1, "    \"%s\": \"%s\",\n", v, d) ;
+      varcount++ ;
+      if (strlen(line)+strlen(buf)<sizeof(buf)-1) strcat(buf,line) ;
+    }
+    p = donext(p) ;
+  }
+  snprintf(line, sizeof(line)-1, "  \"count\": %d\n  },\n  \"scripts\": [\n", varcount) ;
+  if (strlen(line)+strlen(buf)<sizeof(buf)-1) strcat(buf,line) ;
+
+  //
+  // Add scripts to output
+  //
 
   DIR *dir;
   struct dirent *ent;

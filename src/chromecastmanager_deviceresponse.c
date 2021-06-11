@@ -45,7 +45,7 @@
 // Returns true if queried packet processed
 //
 
-int chromecast_device_response_process(CHROMECAST *cch, HTTPD *httpsh) 
+int chromecast_device_response_process(CHROMECAST *cch, HTTPD *httpsh, DATAOBJECT *sysvars) 
 {
 
   DATAOBJECT *doh = ccgetmessage(cch) ;
@@ -104,7 +104,7 @@ int chromecast_device_response_process(CHROMECAST *cch, HTTPD *httpsh)
    logmsg( LOG_DEBUG, "Received %s:%s - processing macro step %d ...", 
            namespace, type, cch->macroindex) ;
 
-    return chromecast_macro_process(httpsh, cch) ;
+    return chromecast_macro_process(httpsh, cch, sysvars) ;
 
   }
 
