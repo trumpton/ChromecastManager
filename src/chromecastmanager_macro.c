@@ -30,7 +30,7 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 
   if (!cch || !macro) return 0 ;
 
-  if (cch->macro) free(cch->macro) ;
+  if (cch->macro) dodelete(cch->macro) ;
   cch->macro=donew() ;
 
   /////////////////////////////////////////////////////
