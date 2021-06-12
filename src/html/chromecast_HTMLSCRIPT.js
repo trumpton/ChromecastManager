@@ -411,7 +411,7 @@ function populatejson(i)
          receiver.value = "$sessionId" ;
          message.value =
            "{\n  \"requestId\" : $(requestId),\n" +
-           "  \"mediaSessionId\": 1,\n" +
+           "  \"mediaSessionId\": $(mediaSessionId),\n" +
            "  \"type\" : \"QUEUE_INSERT\",\n" +
            "  \"items\": [\n" +
            "    {\n" +
