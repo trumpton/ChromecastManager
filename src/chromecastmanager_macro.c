@@ -129,12 +129,13 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch, DATAOBJECT *sysvars
   int num = cch->macroindex-1 ;
   int last = -1 ;
   int responsemessagesent=0 ;
+  int expectresponse=0 ;
 
   // Cancel any force (it can be reasserted if required) 
   cch->macroforce=0 ;
 
   while ( (thisstep=dochild(dofindnode(cch->macro, "/steps/%d", num))) && 
-          num>=0 && num!=last && (loopcount--)>0) {
+          num>=0 && num!=last && !expectresponse && (loopcount--)>0) {
 
     DATAOBJECT *step = donewfrom(thisstep) ;
 
@@ -231,6 +232,10 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch, DATAOBJECT *sysvars
       char *comment=dogetdata(step, do_string, NULL, "/comment") ;
       logmsg( LOG_INFO, "Macro @%d%s%s%s send message", 
               num+1, comment?" (":"", comment?comment:"", comment?")":"") ;
+
+      unsigned long int er=0 ;
+      dogetuint(step, do_bool, &er, "/expectresponse") ;
+      expectresponse = er ;
 
       ccsendmessage(cch, sender, receiver, namespace, message) ;
       num++ ;

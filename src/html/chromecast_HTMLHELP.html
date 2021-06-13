@@ -598,7 +598,11 @@ and seconds optionally provided</p>
 <p><b>sender</b> - Sender to use for the message</p>
 <p><b>receiver</b> - Receiver to use for the message</p>
 <p><b>message</b> - Message data to send</p>
-<p><b>end</b> - Optional - if set to true, processing completes after this step</p>
+<p><b>expectresponse</b> - Optional boolean - if set to true script will allow a response to be received</p>
+<p><b>end</b> - Optional boolean - if set to true, processing completes after this step</p>
+
+<p><i>Note that the expectresponse=true can be useful when looking at the log files, and allows the log file
+to report SEND,RECV,SEND,RECV etc... rather than SEND,SEND,SEND ... RECV,RECV,RECV</i></p>
 
 <div class="comment">
 <pre>
@@ -612,6 +616,7 @@ and seconds optionally provided</p>
     "message": {
        "type": "CONNECT"
     },
+    "expectresponse": false,
     "end": false
 },
 </pre>
