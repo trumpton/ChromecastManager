@@ -38,7 +38,11 @@ runn: debug
 runv: debug
 	valgrind -s --leak-check=full --track-origins=yes ./chromecastmanager-dbg ../conf info
 
+
 runvv: debug
+	valgrind -s --leak-check=full --track-origins=yes ./chromecastmanager-dbg ../conf debug
+
+runvvv: debug
 	valgrind -s --leak-check=full --track-origins=yes ./chromecastmanager-dbg ../conf internal
 
 submodules: libnet/Makefile libdataobject/Makefile libtools/Makefile
