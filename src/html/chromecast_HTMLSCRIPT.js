@@ -50,6 +50,11 @@ function processform()
   } else if (commands == "jsonquery" ) {
 
     /////////////////////////////////
+    // Update requestId
+
+    refreshserverinfo() ;
+
+    /////////////////////////////////
     // Prepare /jsonquery request POST
 
     var namespace = document.getElementById("namespace");
@@ -570,6 +575,13 @@ function refreshserverinfo(selecttag, mediatag)
         }
 
       } 
+
+
+      if (json && json.vars && json.vars.requestId) {
+
+        seq = parseInt(json.vars.requestId) ;
+
+      }
 
       if (json && json.vars) {
     

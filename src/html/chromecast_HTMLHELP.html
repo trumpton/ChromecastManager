@@ -130,15 +130,21 @@ request json and the request query parameters are turned into variables.</li>
 <b>Pre-defined / current variables</b>
 
 <ul>
+<li><b>$(requestId)</b> - requestId variable - automatically increments on each send</li>
 <li><b>/serverinfo</b> - <a href="/serverinfo" target="serverinfo">see serverinfo report</a></li>
 <li><b>/devicelist</b> - <a href="/devicelist" target="devicelist">see devicelist report</a></li>
-<li><b>$(appId)</b> - The application ID of the current session</li>
-<li><b>$(lastMessageNamespace)</b> - The namespace of the last message received</li>
-<li><b>$(lastMessageType)</b> - The type of the last message received</b>
-<li><b>$(mediaSessionId)</b> - The sessionID of the current Media session</li>
-<li><b>$(playerState)</b> - The current state of the media player (if loaded)</li>
-<li><b>$(requestId)</b> - requestId variable - automatically increments on each send</li>
-<li><b>$(sessionId)</b> - The sessionID established through the automatic CONNECT to receiver-0</li>
+</ul>
+
+<p><i>Note: If the smart speaker suddenly disconnects / drops the connection, check that the 
+requestId is incrementing correctly during the session.</i></p>
+
+<ul>
+<li><b>$(appId)</b> - Watch - The application ID of the current session</li>
+<li><b>$(lastMessageNamespace)</b> - Watch - The namespace of the last message received</li>
+<li><b>$(lastMessageType)</b> - Watch - The type of the last message received</b>
+<li><b>$(mediaSessionId)</b> - Watch - The sessionID of the current Media session</li>
+<li><b>$(playerState)</b> - Watch - The current state of the media player (if loaded)</li>
+<li><b>$(sessionId)</b> - Watch - The sessionID established through the automatic CONNECT to receiver-0</li>
 <li><b>$(statusText)</b> - The status text of the current session (if loaded)</li>
 </ul>
 
