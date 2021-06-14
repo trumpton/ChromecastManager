@@ -204,9 +204,13 @@ int main(int argc, char *argv[])
 
   {
     char vbuf[512] ;
+
+    ccsetvariable(sysvars, "requestId", "1") ;
+
     ccsetvariable(sysvars, "serverIpAddress", httpd_ipaddress()) ;
     sprintf(vbuf, "%d", httpd_port()) ; 
     ccsetvariable(sysvars, "serverPort", vbuf) ;
+
     sprintf(vbuf, "http://%s:%d/logo.png", httpd_ipaddress(),httpd_port()) ; 
     ccsetvariable(sysvars, "logo", vbuf) ;
     sprintf(vbuf, "http://%s:%d/pp.png", httpd_ipaddress(),httpd_port()) ; 
@@ -239,6 +243,7 @@ int main(int argc, char *argv[])
     ccsetvariable(sysvars, "end1", vbuf) ;
     sprintf(vbuf, "http://%s:%d/end2.ogg", httpd_ipaddress(),httpd_port()) ; 
     ccsetvariable(sysvars, "end2", vbuf) ;
+
   }
 
   /////////////////////////////////////////////////////
@@ -505,7 +510,7 @@ int main(int argc, char *argv[])
             if (hqi[hc] == i) queriedindex=hc ;
           }
 
-          chromecast_device_response_process(cch[i], queriedindex>=0 ? httpsh[queriedindex] : NULL, sysvars) ;
+          chromecast_device_response_process(cch[i], queriedindex>=0 ? httpsh[queriedindex] : NULL) ;
 
           break ;
 
@@ -520,7 +525,7 @@ int main(int argc, char *argv[])
            if (hqi[hc] == i) queriedindex=hc ;
          }
 
-         chromecast_macro_process(queriedindex>=0 ? httpsh[queriedindex] : NULL, cch[i], sysvars) ;
+         chromecast_macro_process(queriedindex>=0 ? httpsh[queriedindex] : NULL, cch[i]) ;
 
       }
 
@@ -538,7 +543,7 @@ int main(int argc, char *argv[])
       // Expire expired, and request refresh if needed
       
       chromecast_mdns_refresh(TICKRATE, 1, 0) ;
-      chromecast_device_connection_update(cch, maxcc) ;
+      chromecast_device_connection_update(cch, maxcc, sysvars) ;
 
     }
 
@@ -588,7 +593,7 @@ int main(int argc, char *argv[])
     if (!exit_requested && mcfd>0 && FD_ISSET(mcfd, &rfds)) {
 
       chromecast_mdns_update() ;
-      chromecast_device_connection_update(cch, maxcc) ;
+      chromecast_device_connection_update(cch, maxcc, sysvars) ;
 
     }
 

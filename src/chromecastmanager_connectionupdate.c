@@ -22,7 +22,7 @@
 // @brief Maintain chromecast device list
 // Returns true
 
-int chromecast_device_connection_update(CHROMECAST **cclist, int maxcc) 
+int chromecast_device_connection_update(CHROMECAST **cclist, int maxcc, DATAOBJECT *sysvars) 
 {
   for (int i=0; i<maxcc; i++) {
 
@@ -45,7 +45,7 @@ int chromecast_device_connection_update(CHROMECAST **cclist, int maxcc)
 
       // MDNS report device now present, so connect to it
 
-      cclist[i] = ccnew() ;
+      cclist[i] = ccnew(sysvars) ;
       if (cclist[i]) {
         if (!ccconnect(cclist[i], ipaddress, port)) {
           ccdelete(cclist[i]) ;

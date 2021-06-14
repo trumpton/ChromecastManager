@@ -68,6 +68,7 @@ typedef struct {
 
   DATAOBJECT *vars ;
   DATAOBJECT *httpsessionvars ;
+  DATAOBJECT *sysvarsptr ;
 
   DATAOBJECT *recvobject ;
   DATAOBJECT *sendobject ;
@@ -103,7 +104,7 @@ typedef struct {
 // @return handle to connection
 //
 
-CHROMECAST *ccnew() ;
+CHROMECAST *ccnew(DATAOBJECT *sysvars) ;
 
 
 //////////////////////////////////////////////////////////////////////////

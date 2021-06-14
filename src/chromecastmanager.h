@@ -33,7 +33,7 @@ char *getscriptfolder() ;
 // each chromecast device.
 //
 
-int chromecast_device_connection_update(CHROMECAST **cclist, int maxcc) ;
+int chromecast_device_connection_update(CHROMECAST **cclist, int maxcc, DATAOBJECT *sysvars) ;
 
 
 
@@ -52,7 +52,7 @@ int chromecast_device_connection_update(CHROMECAST **cclist, int maxcc) ;
 // PING messages.
 //
 
-int chromecast_device_response_process(CHROMECAST *cch, HTTPD *httpsh, DATAOBJECT *sysvars) ;
+int chromecast_device_response_process(CHROMECAST *cch, HTTPD *httpsh) ;
 
 
 
@@ -104,7 +104,7 @@ int chromecast_device_request_process_serverinfo(HTTPD *httpsh, DATAOBJECT *sysv
 // @brief Process Chromecast JSON Query
 // Returns true
 
-int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch, DATAOBJECT *sessionvars, DATAOBJECT *sysvars) ;
+int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch, DATAOBJECT *sessionvars) ;
 
 
 /////////////////////////////////////////////////////
@@ -115,7 +115,7 @@ int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch, 
 // @return True on success
 //
 
-int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro, DATAOBJECT *sysvars) ;
+int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro) ;
 
 
 /////////////////////////////////////////////////////
@@ -123,7 +123,7 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro, DATAOBJEC
 // @brief Process Macro
 // @return true whilst processing and false on completion / error
 
-int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch, DATAOBJECT *sysvars) ;
+int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch) ;
 
 
 

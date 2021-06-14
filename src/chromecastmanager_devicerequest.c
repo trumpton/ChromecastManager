@@ -146,7 +146,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
       logmsg(LOG_INFO, "Received request: %s for %s from %s:%d - json query", 
                          uri, friendlyname, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
 
-      if (!chromecast_device_request_process_jsonquery(httpsh, cclist[index], sessionvars, sysvars)) {
+      if (!chromecast_device_request_process_jsonquery(httpsh, cclist[index], sessionvars)) {
 
         index = -1 ;
 
@@ -299,7 +299,7 @@ jsonqueryfail:
 
       // Load the macro
 
-      if (chromecast_macro_load(httpsh, cclist[index], jsonscript, sysvars)) {
+      if (chromecast_macro_load(httpsh, cclist[index], jsonscript)) {
 
         logmsg(LOG_INFO, "Received request: %s for %s from %s:%d - json script", 
                          uri, friendlyname, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
@@ -643,7 +643,7 @@ int chromecast_device_request_process_serverinfo(HTTPD *httpsh, DATAOBJECT *sysv
 // @brief Process Chromecast JSON Query
 // Returns true
 
-int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch, DATAOBJECT *sessionvars, DATAOBJECT *sysvars) 
+int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch, DATAOBJECT *sessionvars) 
 {
 
   char *body = hgetbody(httpsh) ;
@@ -667,10 +667,10 @@ int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch, 
 
     // Expand entry variables (2 passes to allow for nested variables)
 
-    ccexpandvariables(request, sysvars, 1, 0) ;
+    ccexpandvariables(request, cch->sysvarsptr, 1, 0) ;
     ccexpandvariables(request, cch->vars, 1, 0) ;
     ccexpandvariables(request, sessionvars, 1, 1) ;
-    ccexpandvariables(request, sysvars, 1, 0) ;
+    ccexpandvariables(request, cch->sysvarsptr, 1, 0) ;
     ccexpandvariables(request, cch->vars, 1, 0) ;
     ccexpandvariables(request, sessionvars, 0, 1) ;
 

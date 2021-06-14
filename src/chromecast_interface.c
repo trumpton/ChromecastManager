@@ -65,13 +65,14 @@ int ccpeerport(CHROMECAST *cch)
 // @return handle to connection
 //
 
-CHROMECAST *ccnew() 
+CHROMECAST *ccnew(DATAOBJECT *sysvars) 
 {
   CHROMECAST *cch = malloc(sizeof(CHROMECAST)) ;
   if (!cch) return NULL ;
   memset(cch, '\0', sizeof(CHROMECAST)) ;
 
   cch->vars = donew() ;
+  cch->sysvarsptr = sysvars ;
 
   /////////////////////////////////////////////////////
   // Add Default Watches
@@ -103,9 +104,6 @@ CHROMECAST *ccnew()
 
   /////////////////////////////////////////////////////
   // Initialise variables not associated with a specific namespace
-
-  dosetdata(cch->vars, do_string, "requestId", 9, "/+/variable") ;
-  dosetdata(cch->vars, do_string, "1", 1, "/*/value") ;
 
   dosetdata(cch->vars, do_string, "lastMessageType", 15, "/+/variable") ;
   dosetdata(cch->vars, do_string, "-", 1, "/*/value") ;
@@ -782,7 +780,7 @@ int ccsendreceivermessage(CHROMECAST *cch, char *type)
 
   if (!cch || !type || !cch->vars) return 0 ;
 
-  int requestId = ccgetrequestid(cch->vars) ;
+  int requestId = ccgetrequestid(cch->sysvarsptr) ;
 
   if (ccsendmessage( cch,  "sender-0", "receiver-0",
               CC_NAMESPACE_RECEIVER, 
@@ -906,7 +904,7 @@ int ccsendmessage(CHROMECAST *cch, char *sender, char *receiver, char *namespace
 
   // Increment request id
 
-  ccincrementrequestid(cch->vars) ;
+  ccincrementrequestid(cch->sysvarsptr) ;
 
   return (r1==4 && r2==len) ;
 

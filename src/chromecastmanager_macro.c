@@ -25,7 +25,7 @@
 // @return True if further processing required
 //
 
-int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro, DATAOBJECT *sysvars)
+int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro)
 {
 
   if (!cch || !macro) return 0 ;
@@ -92,7 +92,7 @@ int chromecast_macro_load(HTTPD *httpsh, CHROMECAST *cch, char *macro, DATAOBJEC
   cch->macrotimer = (time_t)0 ;
   cch->macroforce = 0 ;
 
-  return chromecast_macro_process(httpsh, cch, sysvars) ;
+  return chromecast_macro_process(httpsh, cch) ;
 
   /////////////////////////////////////////////////////
   // Failure - tidy up and return
@@ -117,7 +117,7 @@ fail:
 // @return true whilst processing and false on completion / error
 //
 
-int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch, DATAOBJECT *sysvars)
+int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 {
  
   int loopcount=512 ; // Detection of infinate loops
@@ -143,10 +143,10 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch, DATAOBJECT *sysvars
 
     // Expand entry variables (2 passes to allow for nested variables)
 
-    ccexpandvariables(step, sysvars, 1, 0) ;
+    ccexpandvariables(step, cch->sysvarsptr, 1, 0) ;
     ccexpandvariables(step, cch->vars, 1, 0) ;
     ccexpandvariables(step, cch->httpsessionvars, 1, 1) ;
-    ccexpandvariables(step, sysvars, 1, 0) ;
+    ccexpandvariables(step, cch->sysvarsptr, 1, 0) ;
     ccexpandvariables(step, cch->vars, 1, 0) ;
     ccexpandvariables(step, cch->httpsessionvars, 0, 1) ;
 
