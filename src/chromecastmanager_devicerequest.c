@@ -146,7 +146,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
       logmsg(LOG_INFO, "Received request: %s for %s from %s:%d - json query", 
                          uri, friendlyname, hpeeripaddress(httpsh), hpeerport(httpsh)) ;
 
-      if (!chromecast_device_request_process_jsonquery(httpsh, cclist[index])) {
+      if (!chromecast_device_request_process_jsonquery(httpsh, cclist[index], sessionvars, sysvars)) {
 
         index = -1 ;
 
@@ -643,7 +643,7 @@ int chromecast_device_request_process_serverinfo(HTTPD *httpsh, DATAOBJECT *sysv
 // @brief Process Chromecast JSON Query
 // Returns true
 
-int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch) 
+int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch, DATAOBJECT *sessionvars, DATAOBJECT *sysvars) 
 {
 
   char *body = hgetbody(httpsh) ;
@@ -664,6 +664,15 @@ int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch)
 
     DATAOBJECT *request = donew() ;
     dofromjson(request, body) ;
+
+    // Expand entry variables (2 passes to allow for nested variables)
+
+    ccexpandvariables(request, sysvars, 1, 0) ;
+    ccexpandvariables(request, cch->vars, 1, 0) ;
+    ccexpandvariables(request, sessionvars, 1, 1) ;
+    ccexpandvariables(request, sysvars, 1, 0) ;
+    ccexpandvariables(request, cch->vars, 1, 0) ;
+    ccexpandvariables(request, sessionvars, 0, 1) ;
 
     char *sender = dogetdata(request, do_string, NULL, "/sender") ;
     char *receiver = dogetdata(request, do_string, NULL, "/receiver") ;

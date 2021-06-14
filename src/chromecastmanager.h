@@ -104,7 +104,7 @@ int chromecast_device_request_process_serverinfo(HTTPD *httpsh, DATAOBJECT *sysv
 // @brief Process Chromecast JSON Query
 // Returns true
 
-int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch) ;
+int chromecast_device_request_process_jsonquery(HTTPD *httpsh, CHROMECAST *cch, DATAOBJECT *sessionvars, DATAOBJECT *sysvars) ;
 
 
 /////////////////////////////////////////////////////

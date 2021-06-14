@@ -315,7 +315,7 @@ function populatejson(i)
 
   case 1: namespace.value = "urn:x-cast:com.google.cast.tp.connection" ;
           sender.value = "session-0" ;
-          receiver.value = "$sessionId" ;
+          receiver.value = "$(sessionId)" ;
           message.value = 
             "{\n" +
             "  \"type\" : \"CONNECT\"\n" +
@@ -357,7 +357,7 @@ function populatejson(i)
 
   case 5: namespace.value = "urn:x-cast:com.google.cast.media" ;
           sender.value = "session-0" ;
-          receiver.value = "$sessionId" ;
+          receiver.value = "$(sessionId)" ;
           message.value = 
             "{\n" +
             "  \"requestId\": $(requestId),\n" +
@@ -377,7 +377,7 @@ function populatejson(i)
 
   case 6: namespace.value = "urn:x-cast:com.google.cast.media" ;
           sender.value = "session-0" ;
-          receiver.value = "$sessionId" ;
+          receiver.value = "$(sessionId)" ;
           message.value =
             "{\n" +
             "  \"type\": \"PAUSE\",\n" +
@@ -388,7 +388,7 @@ function populatejson(i)
 
   case 9: namespace.value = "urn:x-cast:com.google.cast.media" ;
           sender.value = "session-0" ;
-          receiver.value = "$sessionId" ;
+          receiver.value = "$(sessionId)" ;
           message.value =
             "{\n" +
             "  \"type\": \"PLAY\",\n" +
@@ -397,9 +397,34 @@ function populatejson(i)
             "}" ;
              break ;
 
+
+  case 10: namespace.value = "urn:x-cast:com.google.cast.media" ;
+          sender.value = "session-0" ;
+          receiver.value = "$(sessionId)" ;
+          message.value =
+            "{\n" +
+            "  \"type\": \"STOP\",\n" +
+            "  \"mediaSessionId\": $(mediaSessionId),\n" +
+            "  \"requestId\": $(requestId)\n" +
+            "}" ;
+             break ;
+
+  case 11: namespace.value = "urn:x-cast:com.google.cast.media" ;
+          sender.value = "session-0" ;
+          receiver.value = "$(sessionId)" ;
+          message.value =
+            "{\n" +
+            "  \"type\": \"SEEK\",\n" +
+            "  \"mediaSessionId\": $(mediaSessionId),\n" +
+            "  \"requestId\": $(requestId),\n" +
+            "  \"resumeState\": \"PLAYBACK_START\",\n" +
+            "  \"currentTime\": 0.7)\n" +
+            "}" ;
+             break ;
+
   case 7: namespace.value = "urn:x-cast:com.google.cast.media" ;
           sender.value = "session-0" ;
-          receiver.value = "$sessionId" ;
+          receiver.value = "$(sessionId)" ;
           message.value = 
             "{\n  \"requestId\" : $(requestId),\n" +
             "  \"type\" : \"GET_STATUS\"\n" +
@@ -408,7 +433,7 @@ function populatejson(i)
 
   case 8:namespace.value = "urn:x-cast:com.google.cast.media" ;
          sender.value = "session-0" ;
-         receiver.value = "$sessionId" ;
+         receiver.value = "$(sessionId)" ;
          message.value =
            "{\n  \"requestId\" : $(requestId),\n" +
            "  \"mediaSessionId\": $(mediaSessionId),\n" +
