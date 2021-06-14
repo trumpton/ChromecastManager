@@ -418,7 +418,7 @@ function populatejson(i)
             "  \"mediaSessionId\": $(mediaSessionId),\n" +
             "  \"requestId\": $(requestId),\n" +
             "  \"resumeState\": \"PLAYBACK_START\",\n" +
-            "  \"currentTime\": 0.7)\n" +
+            "  \"currentTime\": 0.7\n" +
             "}" ;
              break ;
 
