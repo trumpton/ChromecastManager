@@ -65,7 +65,7 @@ int ccpeerport(CHROMECAST *cch)
 // @return handle to connection
 //
 
-CHROMECAST *ccnew(DATAOBJECT *sysvars) 
+CHROMECAST *ccnew(DATAOBJECT *sysvars, int sequence) 
 {
   CHROMECAST *cch = malloc(sizeof(CHROMECAST)) ;
   if (!cch) return NULL ;
@@ -110,6 +110,11 @@ CHROMECAST *ccnew(DATAOBJECT *sysvars)
 
   dosetdata(cch->vars, do_string, "lastMessageNamespace", 20, "/+/variable") ;
   dosetdata(cch->vars, do_string, "-", 1, "/*/value") ;
+
+  char sender[32] ;
+  snprintf(sender, sizeof(sender)-1, "sender-%d", sequence) ;
+  dosetdata(cch->vars, do_string, "sender", 6, "/+/variable") ;
+  dosetdata(cch->vars, do_string, sender, strlen(sender), "/*/value") ;
 
   return cch ;
 }

@@ -104,7 +104,7 @@ typedef struct {
 // @return handle to connection
 //
 
-CHROMECAST *ccnew(DATAOBJECT *sysvars) ;
+CHROMECAST *ccnew(DATAOBJECT *sysvars, int sequence) ;
 
 
 //////////////////////////////////////////////////////////////////////////
