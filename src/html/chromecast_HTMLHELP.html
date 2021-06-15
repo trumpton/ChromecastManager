@@ -476,7 +476,7 @@ monitoring status and responding to the http client.</p>
 
 <h3>Add Watch opcode</h3>
 <p>By default, the chromecastmanager adds watches for <b>lastMessageNamespace</b>, <b>lastMessageType</b>, and
-<b>mediaSessionId<b>, <b>playerState</b>, <b>sessionId</b>, and <b>statusText</b>.</p>
+<b>mediaSessionId</b>, <b>playerState</b>, <b>sessionId</b>, and <b>statusText</b>.</p>
 <p>Additional watches may be added by the step using the addwatch op-code</p>
 
 <p><b>label</b> - Optional step label, used for 'goto' and 'else' destinations</p>
@@ -500,6 +500,7 @@ monitoring status and responding to the http client.</p>
 <p>To get an insight on the message structure in order to work out which namespaces, types and paths are 
 required, use the jsonquery feature in the <a href="/test" target="playground">Test Playground</a></p>
 <p><b>end</b> - Optional - if set to true, processing completes after this step</p>
+<p><b>goto</b> - Optional - if set to a label, flow jumps to that label</p>
 
 <div class="comment">
 <pre>
@@ -511,7 +512,8 @@ required, use the jsonquery feature in the <a href="/test" target="playground">T
     "namespace": "urn:x-cast:com.google.cast.media",
     "type": "MEDIA_STATUS",
     "path": "/message/status/0/mediaSessionId",
-    "end": false
+    "end": false,
+    "goto": "gotolabel"
 }
 </pre>
 </div>
@@ -530,6 +532,7 @@ to ensure that the variable contains the latest information.</p>
                      is required, not the variable contents</p>
 <p><b>value</b> - The new value to set the variable to</p>
 <p><b>end</b> - Optional - if set to true, processing completes after this step</p>
+<p><b>goto</b> - Optional - if set to a label, flow jumps to that label</p>
 
 <div class="comment">
 <pre>
@@ -539,7 +542,8 @@ to ensure that the variable contains the latest information.</p>
     "op": "setwatch",
     "variable": "playerState",
     "value": "RESETTING",
-    "end": false
+    "end": false,
+    "goto": "gotolabel"
 }
 </pre>
 </div>
@@ -560,7 +564,7 @@ and seconds optionally provided</p>
 <p><b>hours / minutes / seconds</b> - Test condition which is true if the specified time has elapsed.</p>
 <p><b>goto</b> - Label to go to if the test condition is successful</p>
 <p><b>else</b> - Label to go to if the test condition is not successful - note that a test condition can have both a <b>goto</b> and an <b>else</b>.  Note also that the special label 'next' is interpreted as the next step in the sequence, and if no <b>goto</b> or <b>else</b> is defined, <b>goto next</b> is assumed.</p>
-<p>Note that the end tag is not valid with the test opcode</p>
+<p>Note that the step-level end and goto tags are not valid with the test opcode</p>
 
 <div class="comment">
 <pre>
@@ -606,6 +610,7 @@ and seconds optionally provided</p>
 <p><b>message</b> - Message data to send</p>
 <p><b>expectresponse</b> - Optional boolean - if set to true script will allow a response to be received</p>
 <p><b>end</b> - Optional boolean - if set to true, processing completes after this step</p>
+<p><b>goto</b> - Optional - if set to a label, flow jumps to that label</p>
 
 <p><i>Note that the expectresponse=true can be useful when looking at the log files, and allows the log file
 to report SEND,RECV,SEND,RECV etc... rather than SEND,SEND,SEND ... RECV,RECV,RECV</i></p>
@@ -623,7 +628,8 @@ to report SEND,RECV,SEND,RECV etc... rather than SEND,SEND,SEND ... RECV,RECV,RE
        "type": "CONNECT"
     },
     "expectresponse": false,
-    "end": false
+    "end": false,
+    "goto": "gotolabel"
 },
 </pre>
 </div>
@@ -646,6 +652,7 @@ the connection</p>
 <p><b>response/responseCode</b> - HTTP Response code to send back - this should normally be 200, even for errors.  If missing, 200 is used</p>
 <p><b>response/info</b> - Optional additional information to send back</b>
 <p><b>end</b> - Optional - if set to true, processing completes after this step</p>
+<p><b>goto</b> - Optional - if set to a label, flow jumps to that label</p>
 
 <div class="comment">
 <pre>
@@ -658,7 +665,8 @@ the connection</p>
         "responseCode": 200,
         "info": "Play request OK"
     },
-    "end": true
+    "end": false,
+    "goto": "gotolabel"
 }
 </pre>
 </div>
@@ -867,7 +875,6 @@ be used instead of the actual value, e.g. in this case <b>98e301ef-305d-4edc-9ac
 <div class="sent">
 <h2>SEND: Issue the Load Command</h2>
 <pre>
-{
 {
     "namespace": "urn:x-cast:com.google.cast.media",
     "sender": "session-1",

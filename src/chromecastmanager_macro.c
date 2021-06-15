@@ -17,6 +17,8 @@
 #include "libtools/mem.h"
 #include "libtools/str.h"
 
+// Local functions
+int _cc_findgoto(DATAOBJECT *macro, char *gotolabel) ;
 
 //
 // @brief Load Macro
@@ -241,7 +243,6 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
       num++ ;
 
 
-
     } else if (op && strcmp(op, "test")==0) {
 
       /////////////////////////////////////////////////////////
@@ -391,53 +392,44 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
         // Move to next condition if no match found
         if (!type) condindex++ ;
 
-    }
+      }
+ 
+      ////////////////////////////////////////////////
+      // Search of all conditions complete - dispatch
 
-    ////////////////////////////////////////////////
-    // Search of all conditions complete - dispatch
+      if (type) {
 
-    if (type) {
-
-      char *comment=dogetdata(step, do_string, NULL, "/comment") ;
-      logmsg( LOG_INFO, "Macro @%d%s%s%s test condition %d triggered - %s %s", 
+        char *comment=dogetdata(step, do_string, NULL, "/comment") ;
+        logmsg( LOG_INFO, "Macro @%d%s%s%s test condition %d triggered - %s %s", 
               num+1, comment?" (":"", comment?comment:"", comment?")":"",
               condindex+1, type, gotolabel?gotolabel:"next") ;
 
-      if (strcmp(gotolabel, "next")==0) {
+        if (strcmp(gotolabel, "next")==0) {
 
-        // Go to next entry
-        num++ ;
-        found=1 ;
+          // Go to next entry
+          num++ ;
+          found=1 ;
 
-      } else {
+        } else {
 
-        // Search for 'goto' entry
+          int gotoindex = _cc_findgoto(cch->macro, gotolabel) ;
 
-        int j=0 ;
-        int found=0 ;
-        DATAOBJECT *search ;
-          DATAOBJECT *scriptlist = dochild(dofindnode(cch->macro, "/steps")) ;
-          while (!found && (search=dochild(donoden(scriptlist, j))) ) {
-            char *label = dogetdata(search, do_string, NULL, "/label") ;
-            if (label && strcmp(label, gotolabel)==0) {
-              found=1 ;
-              num=j ;
-            }
-            j++ ;
-          }
+          if (gotoindex>=0) {
 
-          if (!found) {
+            num=gotoindex ;
+
+          } else {
+
             char *comment=dogetdata(step, do_string, NULL, "/comment") ;
             logmsg( LOG_ERR, "Macro @%d - test condition %d - invalid GOTO label, aborting", 
-                    last+1, condindex+1) ;
+                  last+1, condindex+1) ;
             num=-1 ;
+
           }
 
         }
 
       }
-
-
 
     } else if (op && strcmp(op, "respond")==0) {
 
@@ -465,7 +457,7 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
 
           responsemessagesent=1 ;
 
-       } else {
+        } else {
 
           char *comment=dogetdata(step, do_string, NULL, "/comment") ;
           logmsg( LOG_INFO, "Macro @%d%s%s%s not sending http response%s%s", 
@@ -473,18 +465,17 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
                   httpsh?"":" - http session not active",
                   responsemessagesent?" - response already sent":"") ;
 
-       }
+        }
 
-       num++ ;
+        num++ ;
 
-     } else {
+      } else {
 
         char *comment=dogetdata(step, do_string, NULL, "/comment") ;
         logmsg( LOG_ERR, "Macro @%d - missing response, aborting", last+1) ;
         num=-1 ;
 
-     }
-
+      }
 
 
     } else if (!op) {
@@ -542,6 +533,29 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
         num=-1 ;
       }
 
+      ////////////////////////////////////////////////
+      // Check for "goto": "label"
+
+      char *gotolabel = dogetdata(step, do_string, NULL, "/goto") ;
+
+      if (gotolabel) {
+
+        int gotoindex = _cc_findgoto(cch->macro, gotolabel) ;
+
+        if (gotoindex>=0) {
+
+          num=gotoindex ;
+
+        } else {
+
+          char *comment=dogetdata(step, do_string, NULL, "/comment") ;
+          logmsg( LOG_ERR, "Macro @%d - invalid GOTO label, aborting", last+1) ;
+          num=-1 ;
+
+        }
+
+      }
+
     }
 
     dodelete(step) ;
@@ -570,4 +584,30 @@ int chromecast_macro_process(HTTPD *httpsh, CHROMECAST *cch)
   return (num>=0) ;
 
 }
+
+
+
+int _cc_findgoto(DATAOBJECT *macro, char *gotolabel)
+{
+  if (!macro || !gotolabel) return -1 ;
+
+  DATAOBJECT *scriptlist = dochild(dofindnode(macro, "/steps")) ;
+  if (!scriptlist) return -1 ;
+
+  int j=0 ;
+  DATAOBJECT *search ;
+
+  while ( search=dochild(donoden(scriptlist, j)) ) {
+    char *thislabel = dogetdata(search, do_string, NULL, "/label") ;
+    if (thislabel && strcmp(thislabel, gotolabel)==0) {
+      return j ;
+    } else {
+      j++ ;
+    }
+  }
+
+  return -1 ;
+
+}
+
 
