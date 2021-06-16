@@ -131,7 +131,7 @@ request json and the request query parameters are turned into variables.</li>
 
 <ul>
 <li><b>$(requestId)</b> - requestId variable - automatically increments on each send</li>
-<li><b>$(sender)>/b> - sender variable in the form sender-nnn.  A new value is created for each connection to a chromecast device</li>
+<li><b>$(sender)</b> - sender variable in the form sender-nnn.  A new value is created for each connection to a chromecast device</li>
 <li><b>/serverinfo</b> - <a href="/serverinfo" target="serverinfo">see serverinfo report</a></li>
 <li><b>/devicelist</b> - <a href="/devicelist" target="devicelist">see devicelist report</a></li>
 </ul>
@@ -142,7 +142,7 @@ requestId is incrementing correctly during the session.</i></p>
 <ul>
 <li><b>$(appId)</b> - Watch - The application ID of the current session</li>
 <li><b>$(lastMessageNamespace)</b> - Watch - The namespace of the last message received</li>
-<li><b>$(lastMessageType)</b> - Watch - The type of the last message received</b>
+<li><b>$(lastMessageType)</b> - Watch - The type of the last message received</li>
 <li><b>$(mediaSessionId)</b> - Watch - The sessionID of the current Media session</li>
 <li><b>$(playerState)</b> - Watch - The current state of the media player (if loaded)</li>
 <li><b>$(sessionId)</b> - Watch - The sessionID established through the automatic CONNECT to receiver-0</li>
@@ -154,11 +154,10 @@ step description below).</p>
 
 <b>Variable Updating</b>
 
-<p>The system variables are static, whereas the device variables are dynamic:</p>
-<p>A connection (sender-0) is established to each chromecast device, and this is used to 
-spy on and capture information from responses in order to update variables</p>
-<p>If the device has a session established, a second connection (session-0) is also
-established, and these too can be used to capture information</p>
+<p>The device variables are dynamic in that they are automatically updated when the target
+speaker device outputs a message in the namespace and of the type associated with the variable.</p>
+<p>A connection (sender-0/receiver-0) is established to each device, and this is used to 
+spy on and capture information from responses and broadcast messages in order to update variables</p>
 
 <b>Using Variables</b>
 
@@ -172,7 +171,7 @@ any of the macros).</p>
 <li><b>@(url)</b> - Value is taken from the current line at the specified url</li>
 </ul>
 
-<p>Variables, filenames and urls can take a prefix to force the result to be presented in a specific
+<p>Variables, filenames and urls can take an optional prefix to force the result to be presented in a specific
 format</p>
 
 <ul>
@@ -185,7 +184,7 @@ format</p>
 <p>The filename or url can also take a suffix to control which part of the file is used.</p>
 
 <ul>
-<li><b>#(filename:n)</b> / <b>@(url:n)</b> - The nth line of the file / url is used (see not on 
+<li><b>#(filename:n)</b> / <b>@(url:n)</b> - The nth line of the file / url is used (see note on 
     counting line numbers below)</li>
 <li><b>#(filename:+)</b> / <b>@(url:+)</b> - The current line of the file / url is used, however 
     the line number is incremented afterwards</li>
@@ -205,6 +204,9 @@ format</p>
    whole line.  If the column does not exist, or contains no data, an empty string is 
    used</p>
 
+<p>Alternatively, a character below 32 which is not \n, \r or \t can also be used as a
+   separator instead of a comma.  The line is searched for one of these characters, and if
+   found, it is used as the separator for the line, and if not, a comma is assumed.</p>
 
 <b>Example:</b>
 
@@ -240,8 +242,7 @@ in the <b>$(i:index)</b> variable and return as a floating point number.</p>
 shown in /devicelist is scanned, and if the namespace and type are consistent with that defined
 in the watch (see addwatch macro step below), the variable value is updated</p>
 
-<p>Macros have their integer and floating point variables expanded when the macro is loaded
-from the configuration folder.  String variables are expanded when each step is parsed</p>
+<p>Macro variables are expanded immediately before the execution of each step.</p>
 
 </div>
 
@@ -293,16 +294,15 @@ These are extendible, and may be used when submitting requests</p>
       "connection":"connected",
       "idle":31,
       "vars":{
-      "vars":{
-        "requestId":"3",
-        "lastMessageNamespace":"urn:x-cast:com.google.cast.receiver",
-        "lastMessageType":"RECEIVER_STATUS",
-        "sessionId":"160378b4-b164-4306-ac76-05412a37ecf6",
-        "appId":"CC1AD845",
-        "statusText":"Default Media Receiver",
-        "playerState":"IDLE",
-        "mediaSessionId":"1",
-        "count":8
+         "sessionId": "6948e8f1-f64f-4724-9620-7edb29f44648",
+         "appId": "CC1AD845",
+         "statusText": "Casting: Paul Young - Love Of The Common People",
+         "playerState": "PLAYING",
+         "mediaSessionId": "1",
+         "lastMessageType": "RECEIVER_STATUS",
+         "lastMessageNamespace": "urn:x-cast:com.google.cast.receiver",
+         "sender": "sender-100",
+         "count": 8
       }
     }
   ],
@@ -325,8 +325,9 @@ with these devices.</p>
 <p>Arguments: none</p>
 <p>Action: returns a json report of server status.</p>
 <p>There are three main sections in the report:</p>
-<ul><li><b>vars</b> - Variables which can be used in macro scripts</li>
-<li><b>media</b> - List of media files which are also served from the chromecastmanager</li>
+<ul>
+<li><b>vars</b> - List of system variables, including the media files which are also 
+served from the chromecastmanager</li>
 <li><b>scripts</b> - List of customised macro scripts available</li>
 </ul>
 
@@ -339,15 +340,26 @@ with these devices.</p>
 <b>200 OK</b>
 {
     "vars": {
-        "serverIpAddress": "192.168.1.204",
-        "serverPort": 9000,
-        "logo": "http://192.168.1.204:9000/logo.png",
-        "pp": "http://192.168.1.204:9000/pp.png",
-        "img": "http://192.168.1.204:9000/testimg1.jpg",
-        "test1": "http://192.168.1.204:9000/test1.ogg",
-        "test2": "http://192.168.1.204:9000/test2.ogg",
-        "alert1": "http://192.168.1.204:9000/alert1.ogg",
-        "alert2": "http://192.168.1.204:9000/alert2.ogg"
+        "requestId": "7950",
+        "serverIpAddress": "192.168.1.100",
+        "serverPort": "9000",
+        "logo": "http://192.168.11.100:9000/logo.png",
+        "pp": "http://192.168.1.100:9000/pp.png",
+        "img1": "http://192.168.1.100:9000/img1.jpg",
+        "img2": "http://192.168.1.100:9000/img2.jpg",
+        "test1": "http://192.168.1.100:9000/test1.ogg",
+        "test2": "http://192.168.1.100:9000/test2.ogg",
+        "alert1": "http://192.168.1.100:9000/alert1.ogg",
+        "alert2": "http://192.168.1.100:9000/alert2.ogg",
+        "ok1": "http://192.168.1.100:9000/ok1.ogg",
+        "ok2": "http://192.168.1.100:9000/ok2.ogg",
+        "no1": "http://192.168.1.100:9000/no1.ogg",
+        "no2": "http://192.168.1.100:9000/no2.ogg",
+        "start1": "http://192.168.1.100:9000/start1.ogg",
+        "start2": "http://192.168.1.100:9000/start2.ogg",
+        "end1": "http://192.168.1.100:9000/end1.ogg",
+        "end2": "http://192.168.1.100:9000/end2.ogg",
+        "count": 19
     },
     "scripts": [
         "play",
@@ -497,7 +509,7 @@ monitoring status and responding to the http client.</p>
 }
 </pre></i>
 <p><i>grandparent/parent/0/index</i> has the value "one"</p>
-<p><i>grandparent/parent/1/index</i> has the value "two"</p></p>
+<p><i>grandparent/parent/1/index</i> has the value "two"</p>
 <p>To get an insight on the message structure in order to work out which namespaces, types and paths are 
 required, use the jsonquery feature in the <a href="/test" target="playground">Test Playground</a></p>
 <p><b>end</b> - Optional - if set to true, processing completes after this step</p>
