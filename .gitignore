@@ -1,3 +1,13 @@
+# Specifics
+THOUGHTS.txt
+conf/*.json
+conf/*.pl
+conf/playlist/*.db
+reference-info
+core
+*.log
+log.txt
+
 # Prerequisites
 *.d
 
