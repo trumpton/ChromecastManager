@@ -1,224 +1,497 @@
 {
-  "preprocess": "./playpp.pl",
-  "steps": [
 
-     {
-         "comment": "10 Check supplied parameters",
-         "op": "test",
-         "conditions": [
-             {
-                 "v": "$(url)",
-                 "goto": "next",
-                 "else": "badparams"
-             }
+   "preprocess":"./play.pl",
+   "steps":[
+ 
+    { "comment":  "--------------------------------------------------------------------",
+      "comment1": "play.json                                        ",
+      "comment2": "---------                                        ",
+      "comment3": "                                                 ",
+      "comment4": " 10 Check Supplied Parameters                    ",
+      "comment5": " 20 Launch Media Player                          ",
+      "comment6": " 30 Connect to Media Player                      ",
+      "comment7": " 40 Load Start Sound and dispatch                ",
+      "comment8": " 50 Add $(url) to queue                          ",
+      "comment9": " 60 Add #(playlist/$(localplaylist).db) to queue ",
+      "comment10":" 70 Add @($(playlist)) to queue                  ",
+      "comment11":" 80 Load End Sound and sleep                     ",
+      "comment12":" 90 End and Error Handlers                       " },
+
+    { "comment": "--------------------------------------------------------------------",
+      "comment2":"--- Check supplied parameters ---" },
+
+      {
+         "comment":"10 - Check for parameter : url = $(url)",
+         "op":"test",
+         "conditions":[
+            {
+               "v":"$(url)",
+               "goto":"paramok",
+            },
+            {
+               "v":"$(localplaylist)",
+               "goto":"paramok",
+            },
+            {
+               "v":"$(playlist)",
+               "goto":"paramok",
+               "else":"badparams"
+            }
          ]
-     },
+      },
 
-     {
-         "comment": "20 Ensure required variables are watched",
-         "op": "addwatch",
+
+    { "label": "paramok",
+      "comment": "--------------------------------------------------------------------",
+      "comment2":"--- Launch Media Player ---" },
+
+      {
+         "comment": "20 - Clear appId $(appId)",
+         "op": "setwatch",
          "variable": "appId",
-         "namespace": "urn:x-cast:com.google.cast.receiver",
-         "type": "RECEIVER_STATUS",
-         "path": "/message/status/applications/0/appId",
+         "value": ""
+      },
 
-     },
-
-     {
-         "comment": "21 Ensure required variables are watched",
-         "op": "addwatch",
-         "variable": "playerState",
-         "namespace": "urn:x-cast:com.google.cast.media",
-         "type": "MEDIA_STATUS",
-         "path": "/message/status/0/playerState",
-
-     },
-
-     {
-         "comment": "30 Launch the default media server",
-         "op": "send",
-         "namespace": "urn:x-cast:com.google.cast.receiver",
-         "sender": "sender-0",
-         "receiver": "receiver-0",
-         "message": {
-             "type": "LAUNCH",
-             "requestId": 20,
-             "appId": "CC1AD845"
-         }
-     },
-
-     {
-         "comment": "40 Clear sessionId",
+      {
+         "comment": "21 - Clear sessionId $(sessionId)",
          "op": "setwatch",
          "variable": "sessionId",
          "value": ""
-     },
+      },
 
-     {
-         "comment": "50 Clear playerState",
+
+      {
+         "comment":"22 - Launch the default media player",
+         "op":"send",
+         "namespace":"urn:x-cast:com.google.cast.receiver",
+         "sender":"sender-0",
+         "receiver":"receiver-0",
+         "message":{
+            "type":"LAUNCH",
+            "requestId":$(requestId),
+            "appId":"CC1AD845"
+         },
+         "expectresponse": true
+      },
+
+      {
+         "comment":"23 - Wait for media server $(appId) load to complete",
+         "op":"test",
+         "conditions":[
+            {
+               "a":"$(appId)",
+               "b":"CC1AD845",
+               "goto":"next"
+            },
+            {
+              "seconds": 10,
+              "goto": "timeout"
+            }
+         ]
+      },
+
+      {
+         "comment":"24 - Wait for status refresh -> $sessionId",
+         "op":"test",
+         "conditions":[
+            {
+               "v":"$(sessionId)",
+               "goto":"next"
+            },
+            {
+               "a":"$(lastMessageType)",
+               "b":"CLOSE",
+               "goto":"errorclosed"
+            },
+            {
+              "seconds": 10,
+              "goto": "timeout"
+            }
+         ]
+      },
+
+
+    { "comment": "--------------------------------------------------------------------",
+      "comment2":"--- Connect to Media Player ---" },
+
+      {
+         "comment":"30 - Connect to the Media Server",
+         "op":"send",
+         "namespace":"urn:x-cast:com.google.cast.tp.connection",
+         "sender":"session-0",
+         "receiver":"$(sessionId)",
+         "message":{
+            "type":"CONNECT"
+         },
+         "expectresponse": false
+      },
+
+      {
+         "comment": "31 - Clear mediaSessionId $(mediaSessionId)",
+         "op": "setwatch",
+         "variable": "mediaSessionId",
+         "value": ""
+      },
+
+      {
+         "comment": "32 - Clear lastMessageType $(lastMessageType)",
+         "op": "setwatch",
+         "variable": "lastMessageType",
+         "value": ""
+      },
+
+      {
+         "comment": "33 - Clear playerState $(playerState)",
          "op": "setwatch",
          "variable": "playerState",
-         "value": "RESETTING"
-     },
+         "value": ""
+      },
 
-     {
-         "comment": "60 Wait for the application launch to complete",
-         "op": "test",
-         "conditions": [
-             {
-                 "a": "$(appId)",
-                 "b": "CC1AD845",
-                 "goto": "next"
-             },
-             {
-                 "a": "$(lastMessageType)",
-                 "b": "LAUNCH_ERROR",
-                 "goto": "launcherror"
-             }
+      {
+         "comment":"34 - Refresh Media Server Status",
+         "op":"send",
+         "namespace":"urn:x-cast:com.google.cast.media",
+         "sender":"session-0",
+         "receiver":"$(sessionId)",
+         "message":{
+            "type":"GET_STATUS",
+            "requestId":$(requestId)
+         },
+         "expectresponse": true
+      },
 
+      {
+         "comment":"35 - Wait for media update",
+         "op":"test",
+         "conditions":[
+            {
+               "a":"$(lastMessageType)",
+               "b":"CLOSE",
+               "goto":"errorclosed"
+            },
+            {
+               "a":"$(lastMessageType)",
+               "b":"MEDIA_STATUS",
+               "goto":"next"
+            }
          ]
-     },
+      },
 
-     {
-         "comment": "70 Wait for the the new session ID to be reported",
-         "op": "test",
-         "conditions": [
-             {
-                 "v": "$(sessionId)",
-                 "goto": "next"
-             }
+
+
+    { "comment": "--------------------------------------------------------------------",
+      "comment2":"--- Load Start sound and get new MediaSessionId ---" },
+
+      {
+         "comment":"40 - Load load-start sound",
+         "op":"send",
+         "namespace":"urn:x-cast:com.google.cast.media",
+         "sender":"session-0",
+         "receiver":"$(sessionId)",
+         "message":{
+            "requestId":$(requestId),
+            "type":"LOAD",
+            "autoplay":false,
+            "media":{
+               "contentId":"$(start1)",
+               "streamType":"LIVE",
+               "contentType":"audio/ogg",
+               "metadata":{
+                  "metadataType":0,
+                  "title":"Start Queue"
+               }
+            }
+         },
+         "expectresponse": true
+      },
+
+      {
+         "comment": "41 - Clear mediaSessionId $(mediaSessionId)",
+         "op": "setwatch",
+         "variable": "mediaSessionId",
+         "value": ""
+      },
+
+      {
+         "comment":"42 - Refresh media status",
+         "op":"send",
+         "namespace":"urn:x-cast:com.google.cast.media",
+         "sender":"session-0",
+         "receiver":"$(sessionId)",
+         "message":{
+            "type":"GET_STATUS",
+            "requestId":$(requestId)
+         },
+         "expectresponse": true
+      },
+
+      {
+         "comment":"43 - Check for mediaSessionId $(mediaSessionId) to be set",
+         "op":"test",
+         "conditions":[
+            {
+               "v":"$(mediaSessionId)",
+               "goto":"next"
+            },
+            {
+               "a":"$(lastMessageType)",
+               "b":"CLOSE",
+               "goto":"errorclosed"
+            },
+            {
+              "seconds": 10,
+              "goto": "timeout"
+            }
          ]
-     },
+      },
 
-     {
-         "comment": "80 Connect to the media session",
-         "op": "send",
-         "namespace": "urn:x-cast:com.google.cast.tp.connection",
-         "sender": "session-0",
-         "receiver": "$(sessionId)",
-         "message": {
-           "type": "CONNECT"
+      {
+         "comment":"44 - Dispatch to localplaylist, url or playlist",
+         "op":"test",
+         "conditions":[
+            {
+               "v":"$(localplaylist)",
+               "goto":"enqueuelocalplaylist",
+            },
+            {
+               "v":"$(url)",
+               "goto":"enqueueurl",
+            },
+            {
+               "v":"$(playlist)",
+               "goto":"enqueueplaylist",
+               "else":"enqueueplaylist"
+            }
+         ]
+      },
+
+
+
+    { "label":"enqueueurl",
+      "comment": "--------------------------------------------------------------------",
+      "comment2":"--- Handle play ---" },
+
+      {
+         "comment":"50 - Send response OK",
+         "op":"respond",
+         "response":{
+            "status":"OK",
+            "responseCode":200,
+            "info":"$(url) enqueued"
          }
-     },
+      },
 
-     {
-         "comment": "90 Send load request to established session",
-         "op": "send",
-         "namespace": "urn:x-cast:com.google.cast.media",
-         "sender": "session-0",
-         "receiver": "$(sessionId)",
-         "message": {
-             "requestId": 21,
-             "type": "LOAD",
-             "autoplay": true,
-             "duration": 10,
-             "media": {
-                 "contentId": "$(url)",
-                 "streamType": "LIVE",
-                 "contentType": "audio/mpeg",
-                 "metadata": {
-                     "title": "$(title)"
+      {
+        "comment":"51 - Load $(url) in queue",
+        "op":"send",
+        "namespace":"urn:x-cast:com.google.cast.media",
+        "sender":"session-0",
+        "receiver":"$(sessionId)",
+        "message":{
+           "requestId":$(requestId),
+           "mediaSessionId":$(mediaSessionId),
+           "type":"QUEUE_INSERT",
+           "items":[
+              {
+                 "autoplay":true,
+                 "media":{
+                    "contentId":"$(url)",
+                    "contentType":"audio/mpeg",
+                    "streamType":"LIVE",
+                    "metadata":{
+                        "metadataType":3,
+                        "title":"Streaming",
+                        "artist":"$(title)"
+                    }
                  }
-             }
-         }
-     },
+              }
+            ]
+         },
+         "expectresponse": true,
+         "goto":"loadcomplete"
+      },
 
-     {
-         "comment": "100 Wait for the loads to complete",
-         "op": "test",
-         "conditions": [
-             {
-                 "a": "$(lastMessageNamespace)::$(lastMessageType)",
-                 "b": "urn:x-cast:com.google.cast.media::LOAD_FAILED",
-                 "goto": "loadfailed"
-             },
-             {
-                 "a": "$(lastMessageNamespace)::$(lastMessageType)",
-                 "b": "urn:x-cast:com.google.cast.media::LOAD_CANCELLED",
-                 "goto": "loadfailed"
-             },
-             {
-                 "a": "$(lastMessageNamespace)::$(lastMessageType)",
-                 "b": "urn:x-cast:com.google.cast.tp.connection::CLOSE",
-                 "goto": "loadfailed"
-             },
-             {
-                 "a": "$(playerState)",
-                 "b": "BUFFERING",
-                 "goto": "loadcomplete"
-             },
-             {   
-                 "a": "$(playerState)",
-                 "b": "PLAYING",
-                 "goto": "loadcomplete"
-             }
+
+    { "label":"enqueuelocalplaylist",
+      "comment": "--------------------------------------------------------------------",
+      "comment2":"--- Handle local playlist ---" },
+
+      {
+         "comment":"60 - Send response OK",
+         "op":"respond",
+         "response":{
+            "status":"OK",
+            "responseCode":200,
+            "info":"$(localplaylist) enqueued"
+         }
+      },
+
+      {
+         "label": "nextlocalentry",
+         "comment":"61 - Check next url available for loading",
+         "op":"test",
+         "conditions":[
+            {
+               "v":"#(playlist/$(localplaylist).db:*:1)",
+               "goto":"next",
+               "else":"loadcomplete"
+            }
          ]
-     },
+      },
 
-     {
-         "comment": "110 Play load failure sound",
-         "label": "loadfailed",
-         "op": "send",
-         "namespace": "urn:x-cast:com.google.cast.media",
-         "sender": "session-0",
-         "receiver": "$(sessionId)",
-         "message": {
-             "requestId": 22,
-             "type": "LOAD",
-             "autoplay": true,
-             "media": {
-                 "contentId": "http://$(serverIpAddress):$(serverPort)/alert1.ogg",
-                 "streamType": "LIVE",
-                 "contentType": "audio/ogg",
-                 "metadata": {
-                     "title": "Unable to connect"
-                 }
-             }
+      {
+         "comment":"62 - Enqueue #(playlist/$(localplaylist).db:*:1) in media session $(mediaSessionId)",
+         "op":"send",
+         "namespace":"urn:x-cast:com.google.cast.media",
+         "sender":"session-0",
+         "receiver":"$(sessionId)",
+         "message":{
+            "requestId":$(requestId),
+            "mediaSessionId":$(mediaSessionId),
+            "type":"QUEUE_INSERT",
+            "items":[
+               {
+                  "autoplay":true,
+                  "media":{
+                     "contentId":"#(playlist/$(localplaylist).db:*:1)",
+                     "contentType":"audio/mpeg",
+                     "streamType":"LIVE",
+                     "metadata":{
+                        "metadataType":3,
+                        "title":"#(playlist/$(localplaylist).db:*:2)",
+                        "artist":"#(playlist/$(localplaylist).db:*:3)",
+                        "albumName":"#(playlist/$(localplaylist).db:+:4)"
+                     }
+                  }
+               }
+            ]
+         },
+         "expectresponse": true,
+         "goto":"nextlocalentry"
+      },
+
+
+    { "label":"enqueueplaylist",
+      "comment": "--------------------------------------------------------------------",
+      "comment2":"--- Handle playlist ---" },
+
+      {
+         "comment":"70 - Send response OK",
+         "op":"respond",
+         "response":{
+            "status":"OK",
+            "responseCode":200,
+            "info":"$(playlist) enqueued"
          }
-     },
+      },
+
+      {
+         "label":"nextplaylistentry",
+         "comment":"71 - Check next playlist url available for loading",
+         "op":"test",
+         "conditions":[
+            {
+               "v":"@($(playlist):*:1)",
+               "goto":"next",
+               "else":"loadcomplete"
+            }
+         ]
+      },
+
+      {
+         "comment":"72 - Enqueue @($(playlist):*:1) in media session $(mediaSessionId)",
+         "op":"send",
+         "namespace":"urn:x-cast:com.google.cast.media",
+         "sender":"session-0",
+         "receiver":"$(sessionId)",
+         "message":{
+            "requestId":$(requestId),
+            "mediaSessionId":$(mediaSessionId),
+            "type":"QUEUE_INSERT",
+            "items":[
+               {
+                  "autoplay":true,
+                  "media":{
+                     "contentId":"@($(playlist):*:1)",
+                     "contentType":"audio/mpeg",
+                     "streamType":"LIVE",
+                     "metadata":{
+                        "metadataType":3,
+                        "title":"@($(playlist):*:2)",
+                        "artist":"@($(playlist):*:3)",
+                        "albumName":"@($(playlist):+:4)"
+                     }
+                  }
+               }
+            ]
+         },
+         "expectresponse": true,
+         "goto":"nextplaylistentry"
+      },
+
+
+    { "label":"loadcomplete",
+      "comment": "--------------------------------------------------------------------",
+      "comment2":"--- Queue End Sound and handle sleep ---" },
+
+      {
+         "comment":"80 - Enqueue end sound",
+         "op":"send",
+         "namespace":"urn:x-cast:com.google.cast.media",
+         "sender":"session-0",
+         "receiver":"$(sessionId)",
+         "message":{
+            "requestId":$(requestId),
+            "mediaSessionId":$(mediaSessionId),
+            "type":"QUEUE_INSERT",
+            "items":[
+               {
+                  "autoplay":true,
+                  "media":{
+                     "contentId":"$(end1)",
+                     "contentType":"audio/ogg",
+                     "streamType":"LIVE",
+                     "metadata":{
+                        "metadataType":3,
+                        "title":"End queue"
+                     }
+                  }
+               }
+            ]
+         },
+         "expectresponse": true
+      },
+
+      {
+         "comment":"81 - Start playing media session $(mediaSessionId)",
+         "op":"send",
+         "namespace":"urn:x-cast:com.google.cast.media",
+         "sender":"session-0",
+         "receiver":"$(sessionId)",
+         "message":{
+            "requestId":$(requestId),
+            "mediaSessionId":$(mediaSessionId),
+            "type":"PLAY"
+         },
+         "expectresponse": true
+      },
+
 
      {
-         "comment": "120 send load failed message",
-         "op": "respond",
-         "response": {
-             "status": "LOADFAILED",
-             "responseCode": 200,
-             "info": "Play request failed"
-         }
-     },
-
-     {
-         "comment": "130 Load complete",
-         "op": "respond",
-         "label": "loadcomplete",
-         "response": {
-             "status": "OK",
-             "responseCode": 200,
-             "info": "Play request OK"
-         }
-     },
-
-     {
-         "comment": "Check if sleep requested",
+         "comment": "82 - Check if sleep requested",
          "op": "test",
          "conditions": [
              {
                  "v": "$(sleep)",
                  "goto": "takeanap",
-                 "else": "finish"
+                 "else": "finished"
              }
          ]
      },
 
      {
-         "comment": "Finish",
-         "label" "finish",
-         "end": true
-     },
-
-     {
-         "comment": "140 Sleep $(i:sleep) minutes 5 seconds",
          "label": "takeanap",
+         "comment": "83 - Sleep $(i:sleep) minutes 5 seconds",
          "op": "test",
          "conditions": [
            {
@@ -230,43 +503,76 @@
      },
 
      {
-         "comment": "150 Stop output and finish",
+         "comment": "84 - Stop output, and fall through to finish",
          "op": "send",
          "namespace": "urn:x-cast:com.google.cast.media",
          "sender": "session-0",
          "receiver": "$(sessionId)",
          "message": {
-             "requestId": 23,
+             "requestId": $(requestId),
              "type": "STOP",
              "mediaSessionId": "$(mediaSessionId)"
-             },
-         "end": true
+         }
      },
 
-     {
-         "comment": "160 Missing Parameters",
-         "op": "respond",
-         "label": "badparams",
-         "response": {
-             "status": "ERROR",
-             "responseCode": 200,
-             "info": "Request is missing the url parameter"
-         },
-         "end": true
-     },
+    { "label":"finished",
+      "comment": "--------------------------------------------------------------------",
+      "comment2":"--- Exit ---" },
 
-     {
-         "op": "respond",
-         "comment": "Launch Error",
-         "label": "launcherror",
-         "response": {
-             "status": "ERROR",
-             "responseCode": 200,
-             "info": "Unable to launch the Default Media Player"
-         },
-         "end": true
-     }
+    {
+       "comment": "90 - Finish immediately",
+       "end": true
+    },
+
+    {
+       "label":"errorclosed",
+       "comment":"91 - Chromecast device closed sessoion unexpectedly",
+       "op":"respond",
+       "response":{
+          "status":"ERROR",
+          "responseCode":200,
+          "info":"Chromecast device sent CLOSE message unexpectedly"
+       },
+       "end": true 
+    },
+ 
+
+    {
+       "label":"badparams",
+       "comment":"92 - Missing Parameters",
+       "op":"respond",
+       "response":{
+          "status":"ERROR",
+          "responseCode":200,
+          "info":"playlist or url parameter must be supplied"
+       },
+       "end": true 
+    },
+ 
+    {
+       "label": "timeout",
+       "comment": "93 - Timeout",
+       "end": true
+    },
+
+
+    { "comment": "--------------------------------------------------------------------",
+      "comment2":"--- End of Script ---" }
 
   ]
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

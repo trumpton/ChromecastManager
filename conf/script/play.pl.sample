@@ -1,14 +1,24 @@
 #!/usr/bin/perl
 #
-# playpp.pl.sample
+# play.pl.sample
 #
 # Sample perl preprocess
 #
-# Parses: { "textfield": "[sound] [number] on [device]" }
-# into: { "device": "[device]", "url": "[url for sound]" }
+# Parses: { "textfield": "[sound] on [device]" }
+# into: { "device": "[device]", "localplaylist": "preset[n]" }
+# or:   { "device": "[device]", "localplaylist": "channel[n]" }
+# or:   { "device": "[device]", "playlist": "http://mediaserver/search.pl?q=[query]" }
 #
-# e.g. "test two on kitchen speaker", "alert 1 on lounge chromecast audio"
+
+#############################################################
 #
+# Custom Settings
+#
+
+my $SEARCH = "http://192.168.1.100/search.pl?q=" ;
+my $DEFAULTDEVICE = "all speakers" ;
+
+#############################################################
 
 use 5.010 ;
 use File::Basename;
@@ -49,32 +59,46 @@ sub process {
         my $uri = URI::Encode->new( {encode_reserved => 0 } ) ;
         my $textfield=lc($uri->decode($request)) ;
 
-	# Define server (macro will expand $() variables
-
-        my $server="http://\$(serverIpAddress):\$(serverPort)" ;
-
 	# Log request to syslog
 
 	print STDERR "request = $request\n" ;
 
 	# Parse textfield request
 
-        my ($file,$number,$device) = 
-		$textfield =~ /^(.*)\W+(.*)\W+on\W+(.*)/ix ;
+        my ($query,$device) = 
+          $textfield =~ /^(.*)\W+on\W+(.*)/ix ;
 
-	# Clean up number
+        if ( $device eq "" ) {
+          $query = $textfield ;
+          $device = $DEFAULTDEVICE ;
+        }
 
-	$number = convertnumber($number) ;
+        # Check for channel / preset
+        my ( $chanpre, $num ) =
+          $query =~ /(channel|preset)\W+([^\W]*)/ix ;
 
-	# Generate response
+        my $response ;
 
-	my $url = "$server/$file$number.ogg" ; 
+        if ( $chanpre eq "channel" || $chanpre eq "preset" ) {
 
-	my $response = "{\n" .
-			"  \"textfield\": \"$textfield\",\n" .
-			"  \"device\": \"$device\",\n" .
-			"  \"url\": \"$url\"\n" . 
-			"}" ;
+          $num = convertnumber($num) ;
+
+          $response = "{\n" .
+                      "  \"textfield\": \"$textfield\",\n" .
+                      "  \"device\": \"$device\",\n" .
+                      "  \"localplaylist\": \"$chanpre$num\"\n" .
+                      "}" ;
+ 
+        } else {
+
+          $query =~ s/\W//g ;
+
+	  $response = "{\n" .
+                      "  \"textfield\": \"$textfield\",\n" .
+                      "  \"device\": \"$device\",\n" .
+                      "  \"playlist\": \"$SEARCH$query\"\n" . 
+                      "}" ;
+        }
 
 	return $response ;
 }
@@ -91,7 +115,19 @@ sub convertnumber {
     [ "one", "1" ],
     [ "two", "2" ], [ "to", "2" ], [ "too", "2" ],
     [ "three", "3" ],
-    [ "four", "4" ], [ "fore", "4" ] ) ;
+    [ "four", "4" ], [ "fore", "4" ],
+    [ "five", "5" ], [ "six", "6" ],
+    [ "seven", "7" ], [ "eight", "8" ],
+    [ "ate", "8" ], [ "nine", "9" ],
+    [ "ten", "10" ], [ "eleven", "11" ],
+    [ "twelve" , "12" ], [ "thirteen", "13" ],
+    [ "fourteen", "14" ], [ "fifteen", "15" ],
+    [ "sixteen", "16" ], [ "seventeen", "17" ],
+    [ "eighteen", "18" ], [ "nineteen", "19" ],
+    [ "twenty", "20" ], [ "thirty", "30" ],
+    [ "fourty", "40" ], [ "fifty", "50" ],
+    [ "sixty", "60" ], [ "seventy", "70" ],
+    [ "eighty", "80" ], [ "ninety", "90" ] ) ;
 
   my ($txt) = @_ ;
   my $l = scalar @substitutions ;

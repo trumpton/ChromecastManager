@@ -1,0 +1,65 @@
+
+INTRODUCTION
+============
+
+These example script files enable a chromecastmanager server to play / queue media files
+when linked to from ifttt.
+
+The IFTTT query must be in the format:
+
+{
+  "textfile": "preset one on hall speaker"
+}
+
+
+PROXY AND PROTECTION
+====================
+
+It is recommended that the messages are passed to the chromecastmanager via a proxy
+e.g. nginx - Ideally, the proxy should only accept requests from specific addresses
+and also reject messages that are not correctly formatted, for example, the nginx 
+server could be configured to accept https queries to /apikey-a9ae21-1029afd-1029458/play, 
+and only forward these to the chromecastmanager /play script.
+
+The json script will launch the pre-processor 'play.pl' which parses the "textfile"
+parameter to identify the speaker and the media to be played.
+
+
+MEDIA PLAYLISTS
+===============
+
+This media can come from one of three sources:
+
+ * /etc/conf/playlist/presetN.db
+ * /etc/conf/playlist/channelN.db
+ * http://mediaserver/media/search.pl?q=xyz
+
+The files in the playlist folder must be in the format:
+
+ http://url/,Description of source
+
+Note that the separator comma can be replaced by any character < 32 which is not \n, \r or \t.
+The first character on the line that meets these criteria is used as the separator.
+
+These files can contain a sequence of media files if necessary.
+Or just one media stream url - e.g. from an ezstream shoutcast server.
+Or a search list of internet radio station streams
+
+The mediaserver search files must be in the same format.
+
+Note also that lines starting with # are ignored, as is the ,Description if not present
+This means that an m3u file is accepable as a playlist source.
+
+
+MEDIA SERVER SCRIPTS
+====================
+
+Some example scripts which can automatically build a 'database' of files can be found
+in the mediaserver folder.  This comes in two parts - the first being a script which
+can build the data base files (recommended to be run as a cron job) and the second being
+a cgi script to perform the search and return a list of media to be played.
+
+These files should be placed on the media server. The search.pl and corresponding media 
+files should also be served via http from the media server.
+
+
