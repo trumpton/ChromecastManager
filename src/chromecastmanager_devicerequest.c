@@ -64,7 +64,7 @@ int chromecast_device_request_process(HTTPD *httpsh, CHROMECAST **cclist, int ma
 
     hsendb(httpsh, 200, mediatype, file, len) ;
 
-    logmsg(LOG_INFO, "Received request: %s from %s:%d - returning script %s.json", 
+    logmsg(LOG_INFO, "Received request: %s from %s:%d - returning %s", 
                      uri, 
                      hpeeripaddress(httpsh), hpeerport(httpsh),
                      uri) ;
