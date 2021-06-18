@@ -15,8 +15,8 @@ use strict;
 ## 
 
 my $S = "\x03" ;
-my $ARCHIVE = "/httpserverfiles/media" ;
-my @FOLDERLIST = ("Audio/Music", "Audio/Visits", "Audio/Radio") ;
+my $ARCHIVE="/mediadatabase/data" ;
+my @FOLDERLIST=("Audio/Music", "Audio/Visits", "Audio/Radio") ;
 
 #######################################################################
 
@@ -24,7 +24,6 @@ my @FOLDERLIST = ("Audio/Music", "Audio/Visits", "Audio/Radio") ;
 
 chdir($ARCHIVE) ;
 
-my $search ;
 my $argc = @ARGV ;
   
 if ($argc>0) {
@@ -53,13 +52,13 @@ foreach my $folder (@FOLDERLIST) {
   # (track number no longer needed as file now sorted)
 
   for (my $i=0; $i<scalar(@id3list); $i++) {
-    my ($album, $track, $artist, $title, $file) = split(/$S/,$id3list[$i]) ;
-    $id3list[$i] = $file . $S . $title . $S . $artist . $S . $album ;
+    my ($album, $track, $artist, $title, $genre, $file) = split(/$S/,$id3list[$i]) ;
+    $id3list[$i] = $file . $S . $title . $S . $artist . $S . $album . $S . $genre;
   }
 
   # And output
 
-  open FH, ">", "$ARGV[0]/mediafiles.db" ;
+  open FH, ">", "$folder/mediafiles.db" ;
   foreach my $entry (@id3list) {
     my ($file, $title, $artist, $album) = split(/$S/,$entry) ;
     print "OUTPUTTING $file ($title)\n" ;
@@ -115,13 +114,17 @@ sub getid3info {
   my ($ALB) = $id3output =~ m/TALB[^:]*: (.*)$/m ;
   my ($TIT) = $id3output =~ m/TIT2[^:]*: (.*)$/m ;
   my ($TRK) = $id3output =~ m/TRCK[^:]*: ([0-9]*).*$/m ;
-  my ($COM) = $id3output =~ m/COMM.*\): (.*)$/m ;
+  my ($COM) = $id3output =~ m/COMM.*\]: (.*)$/m ;
+  my ($GEN) = $id3output =~ m/TCON[^:]*: ([^\W]*)/m ;
 
   $TRK = substr("0000" . $TRK, -4, 4) ;
 
+  # Add any file that has ID3 tags, but does not have a
+  # Comment containing the word "Index"
+
   if ( $COM ne "Index" && $TPE ne "") {
     print "PROCESSING: $file ($TIT)\n" ;
-    return $ALB . $S . $TRK . $S . $TPE . $S . $TIT . $S . $file ;
+    return $ALB . $S . $TRK . $S . $TPE . $S . $TIT . $S . $GEN . $S . $file ;
   } else {
     print "SKIPPING: $filepath\n" ;
     return "" ;
