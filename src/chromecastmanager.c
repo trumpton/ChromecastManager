@@ -223,6 +223,10 @@ int main(int argc, char *argv[])
     ccsetvariable(sysvars, "test1", vbuf) ;
     sprintf(vbuf, "http://%s:%d/test2.ogg", httpd_ipaddress(),httpd_port()) ; 
     ccsetvariable(sysvars, "test2", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/test3.ogg", httpd_ipaddress(),httpd_port()) ;
+    ccsetvariable(sysvars, "test3", vbuf) ;
+    sprintf(vbuf, "http://%s:%d/test4.ogg", httpd_ipaddress(),httpd_port()) ;
+    ccsetvariable(sysvars, "test4", vbuf) ;
     sprintf(vbuf, "http://%s:%d/alert1.ogg", httpd_ipaddress(),httpd_port()) ; 
     ccsetvariable(sysvars, "alert1", vbuf) ;
     sprintf(vbuf, "http://%s:%d/alert2.ogg", httpd_ipaddress(),httpd_port()) ; 

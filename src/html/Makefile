@@ -11,7 +11,8 @@ SOURCES := chromecast_BINALERT1.ogg chromecast_BINALERT2.ogg \
 		chromecast_BINIMG1.jpg chromecast_BINIMG2.jpg \
 		chromecast_HTMLHELP.html chromecast_HTMLTEST.html chromecast_HTMLSCRIPT.js \
 		chromecast_HTMLCSS.css chromecast_HTML404.html chromecast_HTMLSAMPLEDEVICELIST.json \
-                mixkit_TEST1.ogg mixkit_TEST2.ogg
+                mixkit_TEST1.ogg mixkit_TEST2.ogg \
+		chromecast_TEST3.ogg chromecast_TEST4.ogg
 
 TXT2H := txt2h
 BIN2H := bin2h
@@ -22,6 +23,7 @@ all: ${BIN2H} chromecast_BINALERT1.oggh chromecast_BINALERT2.oggh \
 		chromecast_BINSTART1.oggh chromecast_BINSTART2.oggh \
 		chromecast_BINEND1.oggh chromecast_BINEND2.oggh \
 		mixkit_TEST1.oggh mixkit_TEST2.oggh \
+		chromecast_TEST3.oggh chromecast_TEST4.oggh \
 		chromecast_BINICON.pngh \
 		chromecast_BINIMG1.jpgh chromecast_BINIMG2.jpgh \
 		chromecast_BINPP.pngh ${TXT2H} lhtmlfs.a

@@ -27,6 +27,8 @@
 #include "chromecast_BINEND2.oggh"
 #include "mixkit_TEST1.oggh"
 #include "mixkit_TEST2.oggh"
+#include "chromecast_TEST3.oggh"
+#include "chromecast_TEST4.oggh"
 #include "chromecast_BINPP.pngh"
 #include "chromecast_BINIMG1.jpgh"
 #include "chromecast_BINIMG2.jpgh"
@@ -166,6 +168,20 @@ int html_filesystem(char *path, char **data, char **mediatype, int *len)
     *data = TEST2_DATA ;
     *mediatype = TEST2_MEDIATYPE ;
     *len = TEST2_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/test3.ogg")==0) {
+
+    *data = TEST3_DATA ;
+    *mediatype = TEST3_MEDIATYPE ;
+    *len = TEST3_LEN ;
+    return 1 ;
+
+  } else if (strcasecmp(path, "/test4.ogg")==0) {
+  
+    *data = TEST4_DATA ;
+    *mediatype = TEST4_MEDIATYPE ;
+    *len = TEST4_LEN ;
     return 1 ;
 
   } else if (strcasecmp(path, "/site.css")==0) {
